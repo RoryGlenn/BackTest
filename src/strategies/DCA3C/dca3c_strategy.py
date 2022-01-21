@@ -14,7 +14,10 @@ import pandas as pd
 STARTING_CASH = 1000000
 ORACLE        = "historical_data/oracle.csv"
 
-#  CAN WE FORCE THE CANDLESTICK LOWS TO HAPPEN BEFORE THE CANDLESTICK HIGHS?
+# TODO:
+    #  CAN WE FORCE THE CANDLESTICK LOWS TO HAPPEN BEFORE THE CANDLESTICK HIGHS?
+    # Store data in db?
+
 
 class DCA3C(bt.Strategy):
     # DCA values
@@ -44,12 +47,11 @@ class DCA3C(bt.Strategy):
     def __init__(self) -> None:
         # Update TP to include making back the commission
         # self.params.tp += commission
-        
+
         self.data_open  = self.datas[0].open
         self.data_high  = self.datas[0].high
         self.data_low   = self.datas[0].low
         self.data_close = self.datas[0].close
-
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -61,10 +63,20 @@ class DCA3C(bt.Strategy):
         self.cheating: bool = self.cerebro.p.cheat_on_open
 
         self.dca                   = None
-        self.has_position          = False
         self.has_base_order_filled = False
         return
 
+    def print_safety_orders(self) -> None:
+        if self.dca is not None:
+            print()
+            self.dca.print_table()
+        return
+
+    def print_orders(self) -> None:
+        print()
+        for order in self.safety_orders:
+            print(f"Price: {order.price} Quantity: {order.size}, Status: {order.status}, Alive: {order.alive()}")  
+        return
 
     def set_take_profit(self) -> None:
         '''
@@ -97,29 +109,38 @@ class DCA3C(bt.Strategy):
         print()
         return
 
-
     def notify_order(self, order: bt.order.BuyOrder):
-        # Check if an order has been completed
-        # Attention: broker could reject order if not enough cash
-        
-        if order.status in [order.Completed]:
+        if order.status in [order.Submitted, order.Accepted]:
+            return
+        elif order.status in [order.Completed]:
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
-
+                
+                self.print_orders()
+                
                 self.buyprice = order.executed.price
                 self.buycomm  = order.executed.comm
 
                 # Update current deal variables
-                self.has_position = True
+                # self.has_position = True
 
-                # Update the sell order take profit price every time a new safety order is filled
-                if self.has_base_order_filled:
-                    self.set_take_profit()
-                else:
-                    self.has_base_order_filled = True
+                # # Update the sell order take profit price every time a new safety order is filled
+                # if self.has_base_order_filled:
+                #     self.set_take_profit()
+                # else:
+                #     self.has_base_order_filled = True
 
-            elif order.issell():  # Sell
+                """
+                In order to place and cancel order on time, we need to look at the next day and see which buy/sell orders will be filled
+
+                If a sell is to be filled the next day, cancel all buy orders below the sell price
+                
+                """
+
+            elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+
+                self.print_orders()
 
                 # Cancel all of the unfilled safety orders
                 [self.cancel(order) for order in self.safety_orders]
@@ -129,14 +150,12 @@ class DCA3C(bt.Strategy):
 
                 # Clear variable to store new sell order (TP)
                 self.take_profit_order     = None
-                self.has_position          = False
                 self.has_base_order_filled = False
 
         # Debugging
-        # elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-        elif order.status in [order.Margin]:
-            self.log('Order Margin')
-            print(order)
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            print(order.status)
+        self.order = None
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
@@ -144,9 +163,9 @@ class DCA3C(bt.Strategy):
             self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
         return
 
-    def operate(self, fromopen: bool) -> None:
+    def operate(self) -> None:
         if self.position.size == 0:
-            print('{} Send Buy, fromopen {}, close {}'.format(self.data.datetime.date(), fromopen, self.data.close[0]))
+            print('{} OPERATE: send Buy, close {}'.format(self.data.datetime.date(), self.data.close[0]))
 
             print('')
             print('*** NEW DEAL ***')
@@ -179,64 +198,62 @@ class DCA3C(bt.Strategy):
                 buy_order = self.buy(price=self.dca.price_levels[i],
                                      size=self.dca.quantities[i],
                                      exectype=bt.Order.Limit)
-                self.safety_orders.append(buy_order)        
+                self.safety_orders.append(buy_order)
+
+        self.print_orders()
+        return
+
+    def next(self) -> None:
+        print("\n-> NEXT ->")
+        print(f"{self.data.datetime.date()} next, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
+        self.operate()
+        return
+
+    def stop(self) -> None:
+        print()
+        print("Finished Backtesting")
+        profit = round(cerebro.broker.getvalue() - starting_value, 2)
+        print(f"Final Portfolio Value: ${round(cerebro.broker.getvalue(), 2)}")
+        print(f"Total Profit: ${profit}")
         return
 
 
-    def next_open(self) -> None:
-        """
-        https://www.backtrader.com/blog/posts/2017-05-01-cheat-on-open/cheat-on-open/
-        If cheat-on-open is True, it will only operate from next_open
-        If cheat-on-open is False, it will only operate from next
+    # def next_open(self) -> None:
+    #     """
+    #     https://www.backtrader.com/blog/posts/2017-05-01-cheat-on-open/cheat-on-open/
+    #     If cheat-on-open is True, it will only operate from next_open
+    #     If cheat-on-open is False, it will only operate from next
 
-        In both cases the matching price must be the same
-        If not cheating, the order is issued at the end of the previous day and will be matched with the next incoming price which is the open price
-        If cheating, the order is issued on the same day it is executed. 
-        Because the order is issued before the broker has evaluated orders, it will also be matched with the next incoming price, the open price.
-        This second scenario, allows calculation of exact stakes for all-in strategies, because one can directly access the current open price.
+    #     In both cases the matching price must be the same
+    #     If not cheating, the order is issued at the end of the previous day and will be matched with the next incoming price which is the open price
+    #     If cheating, the order is issued on the same day it is executed.
+    #     Because the order is issued before the broker has evaluated orders, it will also be matched with the next incoming price, the open price.
+    #     This second scenario, allows calculation of exact stakes for all-in strategies, because one can directly access the current open price.
 
-        In both cases
-        The current open and close prices will be printed from next. 
+    #     In both cases
+    #     The current open and close prices will be printed from next. 
         
-        """
-        print("\n-> NEXT_OPEN CANDLE STICK ->")
-        print(f"{self.data.datetime.date()} next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
+    #     """
+    #     print("\n-> NEXT_OPEN CANDLE STICK ->")
+    #     print(f"{self.data.datetime.date()} next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
+        
+    #     if not self.cheating:
+    #         return
 
-        if not self.cheating:
-            return
-
-        self.operate(fromopen=True)
-        return
+    #     self.operate(fromopen=True)
+    #     return
 
     # def nextstart_open(self) -> None:
     #     print("\n-> NEXT_START ->")
     #     print(f"{self.data.datetime.date()} next start open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")        
     #     return 
 
-    def prenext_open(self) -> None:
-        print("\n-> PRE_NEXT_OPEN ->")
-        print(f"{self.data.datetime.date()} pre next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
-
-        # check which orders were filled?
-        for order in self.safety_orders:
-            print(order.price, order.size, order.status, order.alive())
-        return
+    # def prenext_open(self) -> None:
+    #     print("\n-> PRE_NEXT_OPEN ->")
+    #     print(f"{self.data.datetime.date()} pre next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
+    #     return
 
 
-
-    def next(self):
-        print("\n-> NEXT ->")
-        print(f"{self.data.datetime.date()} next, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
-
-        if self.cheating:
-            return
-        
-        self.operate(fromopen=False)
-        return
-
-    def stop(self) -> None:
-        print("Finished Backtesting")
-        return
 
 
 
@@ -246,7 +263,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)
 
-    df         = pd.read_csv(ORACLE)
+    df = pd.read_csv(ORACLE)
     df.drop(columns=["Volume", "Adj Close"], inplace=True)
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
@@ -258,10 +275,29 @@ if __name__ == '__main__':
 
     starting_value = cerebro.broker.getvalue()
     print(f"Starting Portfolio Value: {starting_value}")
-    cerebro.run(cheat_on_open=True)
 
-    print()
-    profit = round(cerebro.broker.getvalue() - starting_value, 2)
-    print(f"Final Portfolio Value: ${round(cerebro.broker.getvalue(), 2)}")
-    print(f"Total Profit: ${profit}")
+    cerebro.run()
     cerebro.plot(volume=False, style='candlestick')
+
+
+
+# cerebro.run(cheat_on_open=True)
+# Price: 2.123457 Quantity: 10, Status: 4, Alive: False
+# Price: 2.09585206 Quantity: 5, Status: 4, Alive: False
+# Price: 2.05278835 Quantity: 12.5, Status: 2, Alive: True
+# Price: 1.98560897 Quantity: 31.25, Status: 2, Alive: True
+# Price: 1.88080913 Quantity: 78.125, Status: 2, Alive: True
+# Price: 1.71732138 Quantity: 195.3125, Status: 2, Alive: True
+# Price: 1.46228049 Quantity: 488.28125, Status: 2, Alive: True
+# Price: 1.0644167 Quantity: 1220.703125, Status: 2, Alive: True
+
+
+# cerebro.run(cheat_on_close=True)
+# Price: 2.179012 Quantity: 10, Status: 4, Alive: False
+# Price: 2.15068484 Quantity: 5, Status: 4, Alive: False
+# Price: 2.10649448 Quantity: 12.5, Status: 4, Alive: False
+# Price: 2.03755751 Quantity: 31.25, Status: 2, Alive: True
+# Price: 1.93001585 Quantity: 78.125, Status: 2, Alive: True
+# Price: 1.76225084 Quantity: 195.3125, Status: 2, Alive: True
+# Price: 1.50053744 Quantity: 488.28125, Status: 2, Alive: True
+# Price: 1.09226453 Quantity: 1220.703125, Status: 2, Alive: True

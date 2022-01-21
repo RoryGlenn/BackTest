@@ -21,6 +21,7 @@ class DCA():
         self.profit_levels:                     list          = [ ]
         self.cost_levels:                       list          = [ ]
         self.total_cost_levels:                 list          = [ ]
+        self.df:                                pd.DataFrame  = None
 
         # values to be passed in
         self.entry_price:                  float = entry_price
@@ -216,9 +217,9 @@ class DCA():
     def print_table(self):
         safety_order_numbers = [i for i in range(1, self.safety_orders_max+1)]
 
-        df = pd.DataFrame(
+        self.df = pd.DataFrame(
             {
-                'safety order number':        safety_order_numbers,
+                'safety_order_number':        safety_order_numbers,
                 'deviation_percentage':       self.deviation_percentage_levels,
                 'quantity':                   self.quantities,
                 'total_quantity':             self.total_quantities,
@@ -230,6 +231,7 @@ class DCA():
                 'cost':                       self.cost_levels,
                 'total_cost':                 self.total_cost_levels
             })
-
-        print(df)
+        
+        self.df.set_index('safety_order_number', inplace=True)
+        print(self.df)
         return

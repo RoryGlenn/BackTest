@@ -4,11 +4,9 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from dca        import DCA
 
-import datetime
 import os
-
 import backtrader as bt
-import pandas as pd
+import pandas     as pd
 
 
 STARTING_CASH = 1000000
@@ -60,8 +58,6 @@ class DCA3C(bt.Strategy):
         self.safety_orders = []
         self.order         = None
 
-        self.cheating: bool = self.cerebro.p.cheat_on_open
-
         self.dca                   = None
         self.has_base_order_filled = False
         return
@@ -90,19 +86,33 @@ class DCA3C(bt.Strategy):
             return
 
         # If a sell order has already been made, cancel it
-        self.cancel(self.take_profit_order)
+        # self.cancel(self.take_profit_order)
 
         print()
         print("CANCELED TAKE PROFIT SELL ORDER")
         print(f"Price: {self.take_profit_order.price}, Size: {self.take_profit_order.size}")
 
-        total_quantity = self.dca.total_quantities.pop(0)
-        required_price = self.dca.required_price_levels.pop(0)
+        # total_quantity = self.dca.total_quantities.pop(0)
+        # required_price = self.dca.required_price_levels.pop(0)
+
+        self.dca.print_table()
+        
+        quantity_to_sell = self.dca.total_quantities[0]
+        required_price   = self.dca.required_price_levels[0]
 
         self.take_profit_order = self.sell(price=required_price,
-                                           size=total_quantity,
+                                           size=quantity_to_sell,
                                            exectype=bt.Order.Limit)
 
+        safety_order = self.buy(price=self.dca.price_levels[0],
+                                    size=self.dca.quantities[0],
+                                    exectype=bt.Order.Limit,
+                                    oco=self.take_profit_order) # oco = One Cancel Others
+        
+        self.safety_orders.append(safety_order)
+
+        self.dca.remove_top_safety_order()
+        
         print()
         print("NEW TAKE PROFIT ORDER")
         print(f"Price: {self.take_profit_order.price}, Size: {self.take_profit_order.size}")
@@ -115,8 +125,6 @@ class DCA3C(bt.Strategy):
         elif order.status in [order.Completed]:
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
-                
-                self.print_orders()
                 
                 self.buyprice = order.executed.price
                 self.buycomm  = order.executed.comm
@@ -143,7 +151,7 @@ class DCA3C(bt.Strategy):
                 self.print_orders()
 
                 # Cancel all of the unfilled safety orders
-                [self.cancel(order) for order in self.safety_orders]
+                # [self.cancel(order) for order in self.safety_orders]
 
                 # Clear the list to store orders for the next deal
                 self.safety_orders = []
@@ -151,10 +159,17 @@ class DCA3C(bt.Strategy):
                 # Clear variable to store new sell order (TP)
                 self.take_profit_order     = None
                 self.has_base_order_filled = False
-
-        # Debugging
-        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            print(order.status)
+        elif order.status in [order.Canceled]:
+            self.log('ORDER CANCELED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+            
+            # if the sell was canceled, that means a safety order was filled. 
+            # time to put in a new take profit order
+            if order.ordtype == 1: # if the canceled order was a sell (aka. the take profit order)
+                self.set_take_profit()
+        elif order.status in [order.Margin]:
+            self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+        elif order.status in [order.Rejected]:
+            self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         self.order = None
         return
 
@@ -184,23 +199,35 @@ class DCA3C(bt.Strategy):
             # self.dca.print_table()
 
             # BASE ORDER BUY
-            buy_order = self.buy(price=entry_price,
-                                 size=self.params.base_order_size)
+            buy_order = self.buy(price=entry_price, size=self.params.base_order_size)
             self.safety_orders.append(buy_order)
 
-            # BASE ORDER SELL         
-            self.take_profit_order = self.sell(price=entry_price + (entry_price * (self.params.target_profit_percent/100)),
+            # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
+            tp_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
+            
+            self.take_profit_order = self.sell(price=tp_price,
                                                size=self.params.base_order_size,
                                                exectype=bt.Order.Limit)
 
-            # SAFETY ORDERS
-            for i in range(self.dca.safety_orders_active_max):
-                buy_order = self.buy(price=self.dca.price_levels[i],
-                                     size=self.dca.quantities[i],
-                                     exectype=bt.Order.Limit)
-                self.safety_orders.append(buy_order)
+            # SAFETY ORDERS (if any of these orders are filled, cancel any open sell order/takeprofit order)
+            # for i in range(self.dca.safety_orders_active_max):
+            #     buy_order = self.buy(price=self.dca.price_levels[i],
+            #                          size=self.dca.quantities[i],
+            #                          exectype=bt.Order.Limit,
+            #                          oco=self.take_profit_order) # oco = One Cancel Others
+            #     self.safety_orders.append(buy_order)
 
-        self.print_orders()
+            """instead of submitting the takeprofit and all safety orders at a single time,
+            submit one safety order and one take profit order until one of thme is canceled!"""
+            safety_order = self.buy(price=self.dca.price_levels[0],
+                                        size=self.dca.quantities[0],
+                                        exectype=bt.Order.Limit,
+                                        oco=self.take_profit_order) # oco = One Cancel Others
+
+            self.safety_orders.append(safety_order)
+
+            self.dca.remove_top_safety_order()
+            # self.print_orders()
         return
 
     def next(self) -> None:
@@ -216,44 +243,6 @@ class DCA3C(bt.Strategy):
         print(f"Final Portfolio Value: ${round(cerebro.broker.getvalue(), 2)}")
         print(f"Total Profit: ${profit}")
         return
-
-
-    # def next_open(self) -> None:
-    #     """
-    #     https://www.backtrader.com/blog/posts/2017-05-01-cheat-on-open/cheat-on-open/
-    #     If cheat-on-open is True, it will only operate from next_open
-    #     If cheat-on-open is False, it will only operate from next
-
-    #     In both cases the matching price must be the same
-    #     If not cheating, the order is issued at the end of the previous day and will be matched with the next incoming price which is the open price
-    #     If cheating, the order is issued on the same day it is executed.
-    #     Because the order is issued before the broker has evaluated orders, it will also be matched with the next incoming price, the open price.
-    #     This second scenario, allows calculation of exact stakes for all-in strategies, because one can directly access the current open price.
-
-    #     In both cases
-    #     The current open and close prices will be printed from next. 
-        
-    #     """
-    #     print("\n-> NEXT_OPEN CANDLE STICK ->")
-    #     print(f"{self.data.datetime.date()} next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
-        
-    #     if not self.cheating:
-    #         return
-
-    #     self.operate(fromopen=True)
-    #     return
-
-    # def nextstart_open(self) -> None:
-    #     print("\n-> NEXT_START ->")
-    #     print(f"{self.data.datetime.date()} next start open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")        
-    #     return 
-
-    # def prenext_open(self) -> None:
-    #     print("\n-> PRE_NEXT_OPEN ->")
-    #     print(f"{self.data.datetime.date()} pre next open, Open: {self.data.open[0]}, High: {self.data.high[0]}, Low: {self.data.low[0]}, Close: {self.data.close[0]}")
-    #     return
-
-
 
 
 
@@ -278,26 +267,3 @@ if __name__ == '__main__':
 
     cerebro.run()
     cerebro.plot(volume=False, style='candlestick')
-
-
-
-# cerebro.run(cheat_on_open=True)
-# Price: 2.123457 Quantity: 10, Status: 4, Alive: False
-# Price: 2.09585206 Quantity: 5, Status: 4, Alive: False
-# Price: 2.05278835 Quantity: 12.5, Status: 2, Alive: True
-# Price: 1.98560897 Quantity: 31.25, Status: 2, Alive: True
-# Price: 1.88080913 Quantity: 78.125, Status: 2, Alive: True
-# Price: 1.71732138 Quantity: 195.3125, Status: 2, Alive: True
-# Price: 1.46228049 Quantity: 488.28125, Status: 2, Alive: True
-# Price: 1.0644167 Quantity: 1220.703125, Status: 2, Alive: True
-
-
-# cerebro.run(cheat_on_close=True)
-# Price: 2.179012 Quantity: 10, Status: 4, Alive: False
-# Price: 2.15068484 Quantity: 5, Status: 4, Alive: False
-# Price: 2.10649448 Quantity: 12.5, Status: 4, Alive: False
-# Price: 2.03755751 Quantity: 31.25, Status: 2, Alive: True
-# Price: 1.93001585 Quantity: 78.125, Status: 2, Alive: True
-# Price: 1.76225084 Quantity: 195.3125, Status: 2, Alive: True
-# Price: 1.50053744 Quantity: 488.28125, Status: 2, Alive: True
-# Price: 1.09226453 Quantity: 1220.703125, Status: 2, Alive: True

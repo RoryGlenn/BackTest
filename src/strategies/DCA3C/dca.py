@@ -215,7 +215,7 @@ class DCA():
 
 
     def print_table(self):
-        safety_order_numbers = [i for i in range(1, self.safety_orders_max+1)]
+        safety_order_numbers = [i for i in range(1, len(self.deviation_percentage_levels)+1)]
 
         self.df = pd.DataFrame(
             {
@@ -234,4 +234,17 @@ class DCA():
         
         self.df.set_index('safety_order_number', inplace=True)
         print(self.df)
+        return
+    
+    def remove_top_safety_order(self) -> None:
+        self.deviation_percentage_levels.pop(0)
+        self.quantities.pop(0)
+        self.total_quantities.pop(0)
+        self.price_levels.pop(0)
+        self.average_price_levels.pop(0)
+        self.required_price_levels.pop(0)
+        self.required_change_percentage_levels.pop(0)
+        self.profit_levels.pop(0)
+        self.cost_levels.pop(0)
+        self.total_cost_levels.pop(0)
         return

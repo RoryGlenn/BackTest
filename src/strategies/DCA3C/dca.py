@@ -238,14 +238,30 @@ class DCA():
         return
     
     def remove_top_safety_order(self) -> None:
-        self.deviation_percentage_levels.pop(0)
-        self.quantities.pop(0)
-        self.total_quantities.pop(0)
-        self.price_levels.pop(0)
-        self.average_price_levels.pop(0)
-        self.required_price_levels.pop(0)
-        self.required_change_percentage_levels.pop(0)
-        self.profit_levels.pop(0)
-        self.cost_levels.pop(0)
-        self.total_cost_levels.pop(0)
+        if len(self.deviation_percentage_levels) > 0 and \
+           len(self.deviation_percentage_levels) > 0 and \
+            len(self.quantities) > 0 and \
+            len(self.total_quantities) > 0 and \
+            len(self.price_levels) > 0 and \
+            len(self.average_price_levels) > 0 and \
+            len(self.required_price_levels) > 0 and \
+            len(self.required_change_percentage_levels) > 0 and \
+            len(self.profit_levels) > 0 and \
+            len(self.cost_levels) > 0 and \
+            len(self.total_cost_levels) > 0:
+            
+                self.deviation_percentage_levels.pop(0)
+                self.quantities.pop(0)
+                self.total_quantities.pop(0)
+                self.price_levels.pop(0)
+                self.average_price_levels.pop(0)
+                self.required_price_levels.pop(0)
+                self.required_change_percentage_levels.pop(0)
+                self.profit_levels.pop(0)
+                self.cost_levels.pop(0)
+                self.total_cost_levels.pop(0)
+        else:
+            print("Could not remove top safety order")
+            import sys
+            sys.exit()
         return

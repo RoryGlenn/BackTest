@@ -11,7 +11,6 @@ import pandas     as pd
 
 STARTING_CASH = 1000000
 ORACLE        = "historical_data/oracle.csv"
-SELL_ORDER = 1
 
 # TODO:
     #  CAN WE FORCE THE CANDLESTICK LOWS TO HAPPEN BEFORE THE CANDLESTICK HIGHS?
@@ -27,8 +26,8 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    2.5),
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
-        ('base_order_size',              10),
-        ('safety_order_size',            5),
+        ('base_order_size_usd',          8100), # in terms of USD
+        ('safety_order_size_usd',        4050), # in terms of USD
     )
 
     def log(self, txt: str, dt=None) -> None:
@@ -41,7 +40,6 @@ class DCA3C(bt.Strategy):
         _dt = dt.isoformat().split("T")[0]
         print('%s, %s' % (_dt, txt))
         return
-
 
     def __init__(self) -> None:
         # Update TP to include making back the commission
@@ -62,12 +60,6 @@ class DCA3C(bt.Strategy):
         self.dca                   = None
         self.has_base_order_filled = False
         self.is_first_safety_order = True
-        return
-
-    def print_safety_orders(self) -> None:
-        if self.dca is not None:
-            print()
-            self.dca.print_table()
         return
 
     def print_orders(self) -> None:
@@ -101,7 +93,7 @@ class DCA3C(bt.Strategy):
             self.take_profit_order = self.sell(price=required_price,
                                             size=quantity_to_sell,
                                             exectype=bt.Order.Limit)
-            print(self.take_profit_order)
+            # print(self.take_profit_order)
             
             self.dca.remove_top_safety_order()
             
@@ -109,7 +101,7 @@ class DCA3C(bt.Strategy):
                                         size=self.dca.quantities[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
-            print(safety_order)
+            # print(safety_order)
         else:
             quantity_to_sell = self.dca.total_quantities[0]
             
@@ -120,14 +112,14 @@ class DCA3C(bt.Strategy):
             self.take_profit_order = self.sell(price=required_price,
                                             size=quantity_to_sell,
                                             exectype=bt.Order.Limit)
-            print(self.take_profit_order)
+            # print(self.take_profit_order)
             
             safety_order = self.buy(price=self.dca.price_levels[0],
                                         size=self.dca.quantities[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
 
-            print(safety_order)
+            # print(safety_order)
         
         self.safety_orders.append(safety_order)
         
@@ -155,6 +147,7 @@ class DCA3C(bt.Strategy):
                 # Clear variable to store new sell order (TP)
                 self.take_profit_order     = None
                 self.has_base_order_filled = False
+                self.is_first_safety_order = True
         elif order.status in [order.Canceled]:
             # print(order.ordtype)
             self.log(f'ORDER CANCELED: Size: {order.size}')
@@ -175,12 +168,17 @@ class DCA3C(bt.Strategy):
         return
 
     def operate(self) -> None:
-        if self.position.size == 0:
+        # if self.position.size == 0:
+
+    #  for some reason, the full quantity of our stocks is not being sold...wtf???
+
+        if len(self.safety_orders) == 0: 
             print('{} OPERATE: send Buy, close {}'.format(self.data.datetime.date(), self.data.close[0]))
+
+            entry_price = self.data.close[0]
 
             print('')
             print('*** NEW DEAL ***')
-            entry_price = self.data_open[0]
 
             self.dca = DCA(entry_price,
                            self.params.target_profit_percent,
@@ -189,20 +187,20 @@ class DCA3C(bt.Strategy):
                            self.params.safety_order_volume_scale,
                            self.params.safety_order_step_scale, 
                            self.params.safety_order_price_deviation,
-                           self.params.base_order_size, 
-                           self.params.safety_order_size)
+                           self.params.base_order_size_usd/entry_price,
+                           self.params.safety_order_size_usd/entry_price)
             self.dca.start()
             # self.dca.print_table()
 
             # BASE ORDER BUY
-            buy_order = self.buy(price=entry_price, size=self.params.base_order_size)
+            buy_order = self.buy(price=entry_price, size=self.params.base_order_size_usd/entry_price)
             self.safety_orders.append(buy_order)
 
             # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
             tp_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
             
             self.take_profit_order = self.sell(price=tp_price,
-                                               size=self.params.base_order_size,
+                                               size=self.params.base_order_size_usd/entry_price,
                                                exectype=bt.Order.Limit)
 
             """instead of submitting the takeprofit and all safety orders at a single time,
@@ -251,3 +249,4 @@ if __name__ == '__main__':
 
     cerebro.run()
     cerebro.plot(volume=False, style='candlestick')
+

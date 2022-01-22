@@ -7,9 +7,10 @@ DECIMAL_MAX = 8
 
 
 class DCA():
-    def __init__(self, entry_price: float, target_profit_percent: float, safety_orders_max: int,
-                        safety_orders_active_max: int, safety_order_volume_scale: float, safety_order_step_scale: float, 
-                        safety_order_price_deviation: float, base_order_size: float, safety_order_size: float):
+    def __init__(self, entry_price: float, target_profit_percent: float, 
+                    safety_orders_max: int, safety_orders_active_max: int, 
+                    safety_order_volume_scale: float, safety_order_step_scale: float, 
+                    safety_order_price_deviation: float, base_order_size: float, safety_order_size: float):
                         
         self.deviation_percentage_levels:       list          = [ ]
         self.price_levels:                      list          = [ ]
@@ -33,6 +34,7 @@ class DCA():
         self.safety_order_price_deviation: float = safety_order_price_deviation
         self.base_order_size:              float = base_order_size
         self.safety_order_size:            float = safety_order_size
+        self.start()
         return
 
     def start(self) -> None:
@@ -261,7 +263,7 @@ class DCA():
                 self.cost_levels.pop(0)
                 self.total_cost_levels.pop(0)
         else:
-            print("Could not remove top safety order")
+            print("Could not remove top safety order..check your code again")
             import sys
             sys.exit()
         return

@@ -1,8 +1,10 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
-import backtrader as bt
 import os
+
+import backtrader as bt
 import pandas     as pd
+
 
 
 STARTING_CASH = 1000000
@@ -63,12 +65,12 @@ class BuyAndHold(bt.Strategy):
         return
 
     def stop(self) -> None:
-        profit   = round(self.broker.getvalue() - self.starting_cash, 2)
-        self.roi = (self.broker.get_value() / self.starting_cash) - 1.0
+        profit = round(self.broker.getvalue() - self.starting_cash, 2)
+        roi    = (self.broker.get_value() / self.starting_cash) - 1.0
 
         print("\n^^^^ Finished Backtesting ^^^^^")
         print(f"Total Profit:          {self.money_format(profit)}")
-        print('ROI:                   {:.2f}%'.format(100.0 * self.roi))
+        print('ROI:                   {:.2f}%'.format(100.0 * roi))
         print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
         return
 

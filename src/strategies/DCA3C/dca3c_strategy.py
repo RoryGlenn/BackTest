@@ -15,6 +15,7 @@ ORACLE        = "historical_data/oracle.csv"
 BNGO          = "historical_data/BNGO.csv"
 
 # PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
+# Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
 
 
 class DCA3C(bt.Strategy):
@@ -57,8 +58,7 @@ class DCA3C(bt.Strategy):
         
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
         self.safety_orders = []
-        self.order         = None
-
+        # self.order                 = None
         self.dca                   = None
         self.has_base_order_filled = False
         self.is_first_safety_order = True
@@ -152,6 +152,9 @@ class DCA3C(bt.Strategy):
                 # self.has_base_order_filled = True
             elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                
+                # make sure this works....(is position.size == 0 after this call?)
+                self.position.close()
 
                 # Clear the list to store orders for the next deal
                 self.safety_orders = []
@@ -171,14 +174,12 @@ class DCA3C(bt.Strategy):
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
-        self.order = None
+        # self.order = None
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
         if trade.isclosed:
             self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
-            # if self.position.size != 0:
-            #     print(self.position)
         return
 
     def operate(self) -> None:
@@ -275,8 +276,6 @@ if __name__ == '__main__':
     cerebro.adddata(data)
     # cerebro.addstrategy(DCA3C)
     cerebro.addstrategy(BuyAndHold)
-
-
 
     cerebro.run()
     cerebro.plot(volume=False)

@@ -20,13 +20,30 @@ class BuyAndHold(bt.Strategy):
         print('%s, %s' % (_dt, txt))
         return
 
+    def money_format(self, money: float) -> str:
+        return "${:,.6f}".format(money)
+
+    def print_ohlc(self) -> None:
+        open  = self.money_format(self.data.open[0])
+        high  = self.money_format(self.data.high[0])
+        low   = self.money_format(self.data.low[0])
+        close = self.money_format(self.data.close[0])
+        print(f"{self.data.datetime.date()} Open: {open}, High: {high}, Low: {low}, Close: {close}")
+        return
+
     def start(self) -> None:
         self.starting_cash = self.broker.get_cash()
+        print(self.money_format(self.starting_cash))
         return
 
     def nextstart(self) -> None:
-        quantity_to_buy = int(self.broker.get_cash() / self.data)
+        self.print_ohlc()
+        quantity_to_buy = int(self.broker.get_cash() / self.data.open[0])
         self.buy(size=quantity_to_buy)
+        return
+
+    def next(self) -> None:
+        self.print_ohlc()
         return
 
     def notify_order(self, order: bt.order.BuyOrder) -> None:
@@ -50,9 +67,9 @@ class BuyAndHold(bt.Strategy):
         self.roi = (self.broker.get_value() / self.starting_cash) - 1.0
 
         print("\n^^^^ Finished Backtesting ^^^^^")
-        print(f"Total Profit: ${profit}")
-        print('ROI:        {:.2f}%'.format(100.0 * self.roi))
-        print(f"Final Portfolio Value: ${round(self.broker.getvalue(), 2)}")
+        print(f"Total Profit:          {self.money_format(profit)}")
+        print('ROI:                   {:.2f}%'.format(100.0 * self.roi))
+        print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
         return
 
 

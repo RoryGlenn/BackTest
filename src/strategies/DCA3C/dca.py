@@ -51,6 +51,7 @@ class DCA():
         self.__set_profit_levels()
         self.__set_cost_levels()
         self.__set_total_cost_levels()
+        self.__save_table()
         return
 
     def __set_deviation_percentage_levels(self) -> None:
@@ -213,9 +214,8 @@ class DCA():
             self.total_cost_levels.append(total_cost)
         return
 
-
-    def print_table(self):
-        safety_order_numbers = [i for i in range(1, len(self.deviation_percentage_levels)+1)]
+    def __save_table(self) -> None:
+        safety_order_numbers = [i for i in range(1, self.safety_orders_max+1)]
 
         self.df = pd.DataFrame(
             {
@@ -231,8 +231,9 @@ class DCA():
                 'cost':                       self.cost_levels,
                 'total_cost':                 self.total_cost_levels
             })
-        
-        self.df.set_index('safety_order_number', inplace=True)
+        return
+                
+    def print_table(self):
         print(self.df)
         return
     

@@ -4,7 +4,7 @@ import os
 
 import backtrader as bt
 import pandas     as pd
-
+import datetime
 
 
 STARTING_CASH = 1000000
@@ -22,6 +22,11 @@ class BuyAndHold(bt.Strategy):
         print('%s, %s' % (_dt, txt))
         return
 
+    def __init__(self) -> None:
+        self.order         = None
+        self.starting_cash = 0
+        return
+
     def money_format(self, money: float) -> str:
         return "${:,.6f}".format(money)
 
@@ -35,13 +40,12 @@ class BuyAndHold(bt.Strategy):
 
     def start(self) -> None:
         self.starting_cash = self.broker.get_cash()
-        print(self.money_format(self.starting_cash))
         return
 
     def nextstart(self) -> None:
         self.print_ohlc()
-        quantity_to_buy = int(self.broker.get_cash() / self.data.open[0])
-        self.buy(size=quantity_to_buy)
+        quantity_to_buy = int(self.starting_cash / self.data.high[0])
+        self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
         return
 
     def next(self) -> None:
@@ -86,8 +90,10 @@ if __name__ == '__main__':
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
 
-    data = bt.feeds.PandasData(dataname=df, openinterest=-1)
-
+    data = bt.feeds.PandasData(dataname=df,
+                               fromdate=datetime.datetime(2000, 9, 1),
+                               todate=datetime.datetime(2002, 12, 31),
+                               openinterest=-1)
     cerebro.adddata(data)
     cerebro.addstrategy(BuyAndHold)
 

@@ -57,6 +57,7 @@ class DCA3C(bt.Strategy):
         # self.params.tp += commission
 
         self.start_cash = 0
+        self.tested_time = None
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -141,16 +142,25 @@ class DCA3C(bt.Strategy):
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 if order.exectype == 0:
-                    self.dca = DCA(order.executed.price,
+                    entry_price     = order.executed.price
+                    base_order_size = order.executed.size
+
+                    self.dca = DCA(entry_price,
                                     self.params.target_profit_percent,
                                     self.params.safety_orders_max,
                                     self.params.safety_orders_active_max,
                                     self.params.safety_order_volume_scale,
                                     self.params.safety_order_step_scale,
                                     self.params.safety_order_price_deviation,
-                                    int(order.executed.size),
-                                    int(self.params.safety_order_size_usd/order.executed.price)
+                                    base_order_size,
+                                    int(base_order_size/2) # this is temporary...
                                 )
+
+                    take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
+                    
+                    self.take_profit_order = self.sell(price=take_profit_price,
+                                                        size=base_order_size,
+                                                        exectype=bt.Order.Limit)
 
                     """instead of submitting the takeprofit and all safety orders at a single time,
                     submit one safety order and one take profit order until one of them is canceled!"""
@@ -159,7 +169,8 @@ class DCA3C(bt.Strategy):
                                                 exectype=bt.Order.Limit,
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
-                    self.safety_orders.append(safety_order)                                
+                    self.safety_orders.append(safety_order)
+                    self.dca.print_df_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -188,45 +199,22 @@ class DCA3C(bt.Strategy):
         return
 
     def start_new_deal(self) -> None:
-        print('{} OPERATE: send buy'.format(self.data.datetime.date()))
-
-        entry_price = self.data.close[0]
-
-        print('')
-        print('*** NEW DEAL ***')
-
-        # self.dca = DCA(entry_price,
-        #                 self.params.target_profit_percent,
-        #                 self.params.safety_orders_max,
-        #                 self.params.safety_orders_active_max,
-        #                 self.params.safety_order_volume_scale,
-        #                 self.params.safety_order_step_scale,
-        #                 self.params.safety_order_price_deviation,
-        #                 int(self.params.base_order_size_usd/entry_price),
-        #                 int(self.params.safety_order_size_usd/entry_price)
-        #             )
-
-        # self.dca.print_df_table()
+        print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
-        buy_order = self.buy(price=entry_price, size=int(self.params.base_order_size_usd/entry_price))
+        entry_price = self.data.close[0]
+        buy_order = self.buy(price=entry_price, 
+                             size=int(self.params.base_order_size_usd/entry_price),
+                             exectype=bt.Order.Market)
+
         self.safety_orders.append(buy_order)
 
         # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
-        tp_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
+        # take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
         
-        self.take_profit_order = self.sell(price=tp_price,
-                                            size=int(self.params.base_order_size_usd/entry_price),
-                                            exectype=bt.Order.Limit)
-
-        """instead of submitting the takeprofit and all safety orders at a single time,
-        submit one safety order and one take profit order until one of them is canceled!"""
-        # safety_order = self.buy(price=self.dca.price_levels[0],
-        #                             size=self.dca.quantities[0],
-        #                             exectype=bt.Order.Limit,
-        #                             oco=self.take_profit_order) # oco = One Cancel Others
-
-        # self.safety_orders.append(safety_order)
+        # self.take_profit_order = self.sell(price=take_profit_price,
+        #                                     size=int(self.params.base_order_size_usd/entry_price),
+        #                                     exectype=bt.Order.Limit)
         return
 
     def next(self) -> None:
@@ -238,7 +226,8 @@ class DCA3C(bt.Strategy):
         return
 
     def start(self) -> None:
-        self.start_cash = self.broker.getvalue()
+        self.tested_time = self.datas[0].p.todate - self.datas[0].p.fromdate
+        self.start_cash  = self.broker.getvalue()
         print(f"Starting Portfolio Value: {self.start_cash}")
         return
 
@@ -247,6 +236,8 @@ class DCA3C(bt.Strategy):
         roi    = (self.broker.get_value() / self.start_cash) - 1.0
 
         print("\n^^^^ Finished Backtesting ^^^^^")
+
+        print(f"Total time tested:     {self.tested_time}")
         print(f"Total Profit:          {self.money_format(profit)}")
         print('ROI:                   {:.2f}%'.format(100.0 * roi))
         print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
@@ -266,7 +257,7 @@ if __name__ == '__main__':
 
     # data = bt.feeds.PandasData(dataname=df, openinterest=-1)
     data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(1995, 1, 3),
+                               fromdate=datetime.datetime(2000, 9, 1),
                                todate=datetime.datetime(2002, 12, 31),
                                openinterest=-1)
 

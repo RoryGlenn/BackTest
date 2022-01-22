@@ -63,7 +63,6 @@ class DCA3C(bt.Strategy):
         
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
         self.safety_orders = []
-        # self.order                 = None
         self.dca                   = None
         self.is_first_safety_order = True
         return
@@ -141,6 +140,26 @@ class DCA3C(bt.Strategy):
         elif order.status in [order.Completed]:
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                if order.exectype == 0:
+                    self.dca = DCA(order.executed.price,
+                                    self.params.target_profit_percent,
+                                    self.params.safety_orders_max,
+                                    self.params.safety_orders_active_max,
+                                    self.params.safety_order_volume_scale,
+                                    self.params.safety_order_step_scale,
+                                    self.params.safety_order_price_deviation,
+                                    int(order.executed.size),
+                                    int(self.params.safety_order_size_usd/order.executed.price)
+                                )
+
+                    """instead of submitting the takeprofit and all safety orders at a single time,
+                    submit one safety order and one take profit order until one of them is canceled!"""
+                    safety_order = self.buy(price=self.dca.price_levels[0],
+                                                size=self.dca.quantities[0],
+                                                exectype=bt.Order.Limit,
+                                                oco=self.take_profit_order) # oco = One Cancel Others
+
+                    self.safety_orders.append(safety_order)                                
             elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -157,7 +176,6 @@ class DCA3C(bt.Strategy):
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
-        # self.order = None
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
@@ -177,16 +195,16 @@ class DCA3C(bt.Strategy):
         print('')
         print('*** NEW DEAL ***')
 
-        self.dca = DCA(entry_price,
-                        self.params.target_profit_percent,
-                        self.params.safety_orders_max,
-                        self.params.safety_orders_active_max,
-                        self.params.safety_order_volume_scale,
-                        self.params.safety_order_step_scale,
-                        self.params.safety_order_price_deviation,
-                        int(self.params.base_order_size_usd/entry_price),
-                        int(self.params.safety_order_size_usd/entry_price)
-                    )
+        # self.dca = DCA(entry_price,
+        #                 self.params.target_profit_percent,
+        #                 self.params.safety_orders_max,
+        #                 self.params.safety_orders_active_max,
+        #                 self.params.safety_order_volume_scale,
+        #                 self.params.safety_order_step_scale,
+        #                 self.params.safety_order_price_deviation,
+        #                 int(self.params.base_order_size_usd/entry_price),
+        #                 int(self.params.safety_order_size_usd/entry_price)
+        #             )
 
         # self.dca.print_df_table()
 
@@ -203,12 +221,12 @@ class DCA3C(bt.Strategy):
 
         """instead of submitting the takeprofit and all safety orders at a single time,
         submit one safety order and one take profit order until one of them is canceled!"""
-        safety_order = self.buy(price=self.dca.price_levels[0],
-                                    size=self.dca.quantities[0],
-                                    exectype=bt.Order.Limit,
-                                    oco=self.take_profit_order) # oco = One Cancel Others
+        # safety_order = self.buy(price=self.dca.price_levels[0],
+        #                             size=self.dca.quantities[0],
+        #                             exectype=bt.Order.Limit,
+        #                             oco=self.take_profit_order) # oco = One Cancel Others
 
-        self.safety_orders.append(safety_order)
+        # self.safety_orders.append(safety_order)
         return
 
     def next(self) -> None:

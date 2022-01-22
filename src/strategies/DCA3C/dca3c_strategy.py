@@ -7,20 +7,20 @@ from dca        import DCA
 import os
 import backtrader as bt
 import pandas     as pd
-
+from buy_and_hold import BuyAndHold
+import math
 
 STARTING_CASH = 1000000
 ORACLE        = "historical_data/oracle.csv"
+BNGO          = "historical_data/BNGO.csv"
 
-# TODO:
-    #  CAN WE FORCE THE CANDLESTICK LOWS TO HAPPEN BEFORE THE CANDLESTICK HIGHS?
-    # Store data in db?
+# PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
 
 
 class DCA3C(bt.Strategy):
     # DCA values
     params = (
-        ('target_profit_percent',        1.0),
+        ('target_profit_percent',        1),
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
@@ -44,6 +44,8 @@ class DCA3C(bt.Strategy):
     def __init__(self) -> None:
         # Update TP to include making back the commission
         # self.params.tp += commission
+
+        self.starting_value = 0
 
         self.data_open  = self.datas[0].open
         self.data_high  = self.datas[0].high
@@ -83,7 +85,7 @@ class DCA3C(bt.Strategy):
         print("CANCELED TAKE PROFIT SELL ORDER")
         print(f"Price: {self.take_profit_order.price}, Size: {self.take_profit_order.size}")
         
-        self.dca.print_table()
+        # self.dca.print_table()
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
@@ -94,6 +96,11 @@ class DCA3C(bt.Strategy):
                                             size=quantity_to_sell,
                                             exectype=bt.Order.Limit)
             # print(self.take_profit_order)
+
+            # IS QUANTITY_TO_SELL DIFFERENT THAN SELF.POSITION.SIZE??????????????????????????
+            print("quantity_to_sell", quantity_to_sell)
+            print("self.position.size", self.position.size)
+
             
             self.dca.remove_top_safety_order()
             
@@ -112,13 +119,18 @@ class DCA3C(bt.Strategy):
             self.take_profit_order = self.sell(price=required_price,
                                             size=quantity_to_sell,
                                             exectype=bt.Order.Limit)
+
+
+            # IS QUANTITY_TO_SELL DIFFERENT THAN SELF.POSITION.SIZE??????????????????????????
+            print("quantity_to_sell", quantity_to_sell)
+            print("self.position.size", self.position.size)
+
             # print(self.take_profit_order)
             
             safety_order = self.buy(price=self.dca.price_levels[0],
                                         size=self.dca.quantities[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
-
             # print(safety_order)
         
         self.safety_orders.append(safety_order)
@@ -129,7 +141,7 @@ class DCA3C(bt.Strategy):
         print()
         return
 
-    def notify_order(self, order: bt.order.BuyOrder):
+    def notify_order(self, order: bt.order.BuyOrder) -> None:
         if order.status in [order.Submitted, order.Accepted]:
             return
         elif order.status in [order.Completed]:
@@ -165,10 +177,11 @@ class DCA3C(bt.Strategy):
     def notify_trade(self, trade: bt.trade.Trade) -> None:
         if trade.isclosed:
             self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
+            # if self.position.size != 0:
+            #     print(self.position)
         return
 
     def operate(self) -> None:
-        # if self.position.size == 0:
 
     #  for some reason, the full quantity of our stocks is not being sold...wtf???
 
@@ -219,13 +232,31 @@ class DCA3C(bt.Strategy):
         self.operate()
         return
 
+    def start(self) -> None:
+        self.starting_value = self.broker.getvalue()
+        print(f"Starting Portfolio Value: {self.starting_value}")
+        return
+
     def stop(self) -> None:
-        print()
-        print("Finished Backtesting")
-        profit = round(cerebro.broker.getvalue() - starting_value, 2)
-        print(f"Final Portfolio Value: ${round(cerebro.broker.getvalue(), 2)}")
+        profit = round(self.broker.getvalue() - self.starting_value, 2)
+
+        print("\n^^^^ Finished Backtesting ^^^^^")
+        print(f"Final Portfolio Value: ${round(self.broker.getvalue(), 2)}")
         print(f"Total Profit: ${profit}")
         return
+
+    def round_decimals_down(self, number: float, decimals: int = 2) -> int | float:
+        """Returns a value rounded down to a specific number of decimal places."""
+        if not isinstance(decimals, int):
+            raise TypeError("decimal places must be an integer")
+        elif decimals < 0:
+            raise ValueError("decimal places has to be 0 or more")
+        elif decimals == 0:
+            return math.floor(number)
+        factor = 10 ** decimals
+        return math.floor(number * factor) / factor
+
+
 
 
 if __name__ == '__main__':
@@ -242,11 +273,28 @@ if __name__ == '__main__':
     data = bt.feeds.PandasData(dataname=df, openinterest=-1, volume=-1)
 
     cerebro.adddata(data)
-    cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(DCA3C)
+    cerebro.addstrategy(BuyAndHold)
 
-    starting_value = cerebro.broker.getvalue()
-    print(f"Starting Portfolio Value: {starting_value}")
+
 
     cerebro.run()
-    cerebro.plot(volume=False, style='candlestick')
+    cerebro.plot(volume=False)
+
+
+    #############################
+    # ('target_profit_percent',        1),
+    # ('safety_orders_max',            7),
+    # ('safety_orders_active_max',     7),
+    # ('safety_order_volume_scale',    2.5),
+    # ('safety_order_step_scale',      1.56),
+    # ('safety_order_price_deviation', 1.3),
+    # ('base_order_size_usd',          8100), # in terms of USD
+    # ('safety_order_size_usd',        4050), # in terms of USD
+
+    # Finished Backtesting
+    # Final Portfolio Value: $1019720.15
+    # Total Profit: $19720.15
+    #############################
+
 

@@ -87,8 +87,13 @@ class DCA3C(bt.Strategy):
         return
 
     def set_take_profit(self) -> None:
+        if self.take_profit_order is None:
+            return
+
         print("\nCANCELED TAKE PROFIT SELL ORDER")
         print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}")
+
+        safety_order = None
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
@@ -107,19 +112,21 @@ class DCA3C(bt.Strategy):
                                         oco=self.take_profit_order) # oco = One Cancel Others
         else:
             quantity_to_sell = self.dca.total_quantities[0]
-            
-            self.dca.remove_top_safety_order()
-            
+                        
             required_price = self.dca.required_price_levels[0]
+
+            self.dca.remove_top_safety_order()
 
             self.take_profit_order = self.sell(price=required_price,
                                             size=quantity_to_sell,
                                             exectype=bt.Order.Limit)
 
-            safety_order = self.buy(price=self.dca.price_levels[0],
-                                        size=self.dca.quantities[0],
-                                        exectype=bt.Order.Limit,
-                                        oco=self.take_profit_order) # oco = One Cancel Others
+            # check if we have placed all safety orders
+            if len(self.dca.price_levels) > 0:
+                safety_order = self.buy(price=self.dca.price_levels[0],
+                                            size=self.dca.quantities[0],
+                                            exectype=bt.Order.Limit,
+                                            oco=self.take_profit_order) # oco = One Cancel Others
         
         self.safety_orders.append(safety_order)
         
@@ -141,11 +148,10 @@ class DCA3C(bt.Strategy):
                 self.take_profit_order     = None
                 self.is_first_safety_order = True
         elif order.status in [order.Canceled]:
-            # print(order.ordtype)
             self.log(f'ORDER CANCELED: Size: {order.size}')
-            # if the sell was canceled, that means a safety order was filled. 
-            # time to put in a new take profit order
-            if order.issell(): # if the canceled order was a sell (aka. the take profit order)
+
+            # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
+            if order.issell():
                 self.set_take_profit()
         elif order.status in [order.Margin]:
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
@@ -157,10 +163,14 @@ class DCA3C(bt.Strategy):
     def notify_trade(self, trade: bt.trade.Trade) -> None:
         if trade.isclosed:
             self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
+
+            if trade.pnl <= 0 or trade.pnlcomm <= 0:
+                print(trade.pnl, trade.pnlcomm)
+                print(trade)
         return
 
     def start_new_deal(self) -> None:
-        print('{} OPERATE: send Buy, close {}'.format(self.data.datetime.date(), self.data.close[0]))
+        print('{} OPERATE: send buy'.format(self.data.datetime.date()))
 
         entry_price = self.data.close[0]
 
@@ -177,11 +187,8 @@ class DCA3C(bt.Strategy):
                         int(self.params.base_order_size_usd/entry_price),
                         int(self.params.safety_order_size_usd/entry_price)
                     )
-        
-        # self.dca.print_table()
 
-        # available_cash = self.broker.
-
+        # self.dca.print_df_table()
 
         # BASE ORDER BUY
         buy_order = self.buy(price=entry_price, size=int(self.params.base_order_size_usd/entry_price))
@@ -250,21 +257,3 @@ if __name__ == '__main__':
 
     cerebro.run()
     cerebro.plot()
-
-
-    #############################
-    # ('target_profit_percent',        1),
-    # ('safety_orders_max',            7),
-    # ('safety_orders_active_max',     7),
-    # ('safety_order_volume_scale',    2.5),
-    # ('safety_order_step_scale',      1.56),
-    # ('safety_order_price_deviation', 1.3),
-    # ('base_order_size_usd',          8100), # in terms of USD
-    # ('safety_order_size_usd',        4050), # in terms of USD
-
-    # Finished Backtesting
-    # Final Portfolio Value: $1019720.15
-    # Total Profit: $19720.15
-    #############################
-
-

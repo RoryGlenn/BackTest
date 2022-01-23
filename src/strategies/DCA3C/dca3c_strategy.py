@@ -2,37 +2,20 @@
     # https://community.backtrader.com/topic/4010/dollar-cost-averaging-strategy/15
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-
-from dca        import DCA
-
-import os
-import datetime
+from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
-import pandas     as pd
-
+import time
 
 STARTING_CASH = 1000000
-ORACLE        = "historical_data/oracle.csv"
-BNGO          = "historical_data/BNGO.csv"
 
 
-"""
-TODO
-    create an optimizer for the DCA settings????
 
-    1. Create a dynamic or static DCA: 
-    make the base order a percentage of starting cash?????
-
-    2. PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
-    3. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
-
-"""
 
 class DCA3C(bt.Strategy):
     # DCA values
     params = (
-        ('dynamic_dca',                  False),
+        ('dynamic_dca',                  True),
         ('target_profit_percent',        1),
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
@@ -40,7 +23,7 @@ class DCA3C(bt.Strategy):
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
         ('base_order_size_usd',          7750), # in terms of USD
-        ('safety_order_size_usd',        4000), # in terms of USD
+        ('safety_order_size_usd',        4000), # in terms of USD (with dynamic_dca, this setting is not used...)
     )
 
     def log(self, txt: str, dt=None) -> None:
@@ -58,6 +41,8 @@ class DCA3C(bt.Strategy):
         # Update TP to include making back the commission
         # self.params.tp += commission
 
+        self.start_time = time.time()
+
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
         
@@ -67,8 +52,15 @@ class DCA3C(bt.Strategy):
         self.dca                   = None
         self.is_first_safety_order = True
         self.start_cash            = 0
-        self.tested_time           = None
+        self.time_period           = None
         return
+
+    def get_elapsed_time(self, start_time: float) -> str:
+        end_time     = time.time()
+        elapsed_time = round(end_time - start_time)
+        minutes      = elapsed_time // 60
+        seconds      = elapsed_time % 60
+        return f"{minutes} minutes {seconds} seconds"
 
     def money_format(self, money: float) -> str:
         return "${:,.6f}".format(money)
@@ -270,77 +262,43 @@ class DCA3C(bt.Strategy):
         return
 
     def start(self) -> None:
-        self.tested_time = self.datas[0].p.todate - self.datas[0].p.fromdate
+        self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.getvalue()
         print(f"Starting Portfolio Value: {self.start_cash}")
         return
 
     def stop(self) -> None:
-        profit = round(self.broker.getvalue() - self.start_cash, 2)
-        roi    = (self.broker.get_value() / self.start_cash) - 1.0
+        time_elapsed = self.get_elapsed_time(self.start_time)
+        profit       = round(self.broker.getvalue() - self.start_cash, 2)
+        roi          = (self.broker.get_value() / self.start_cash) - 1.0
 
         print("\n^^^^ Finished Backtesting ^^^^^")
-
-        print(f"Total time tested:     {self.tested_time}")
+        print()
+        print(f"Time Elapsed:           {time_elapsed}")
+        print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {self.money_format(profit)}")
         print('ROI:                   {:.2f}%'.format(100.0 * roi))
         print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
         return
 
 
-if __name__ == '__main__':
-    os.system("cls")
 
-    cerebro = bt.Cerebro()
-    cerebro.broker.set_cash(STARTING_CASH)
-
-    df = pd.read_csv(BNGO)
-
-    df.drop(columns=["Adj Close"], inplace=True)
-    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
-    df.set_index('Date', inplace=True)
-
-    # BNGO
-    data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(2018, 8, 21),
-                               todate=datetime.datetime(2022, 1, 20)
-                               )
-
-    
-    # data = bt.feeds.PandasData(dataname=df,
-    #                            fromdate=datetime.datetime(1995, 1, 3),
-    #                            todate=datetime.datetime(2014, 12, 31),
-    #                            openinterest=-1)
-
-    # data = bt.feeds.PandasData(dataname=df,
-    #                            fromdate=datetime.datetime(2000, 9, 1),
-    #                            todate=datetime.datetime(2002, 12, 31),
-    #                            openinterest=-1)
-
-    cerebro.adddata(data)
-    cerebro.addstrategy(DCA3C)
-
-    cerebro.run()
-    cerebro.plot()
+# """
+#     ^^^^ Finished Backtesting ^^^^^
+#     Total time tested:     1248 days, 0:00:00
+#     Total Profit:          $1,696,571.520000
+#     ROI:                   169.66%
+#     Final Portfolio Value: $2,696,571.520000
 
 
-
-"""
-    ^^^^ Finished Backtesting ^^^^^
-    Total time tested:     1248 days, 0:00:00
-    Total Profit:          $1,696,571.520000
-    ROI:                   169.66%
-    Final Portfolio Value: $2,696,571.520000
-
-
-        params = (
-            ('dynamic_dca',                  True),
-            ('target_profit_percent',        1),
-            ('safety_orders_max',            7),
-            ('safety_orders_active_max',     7),
-            ('safety_order_volume_scale',    2.5),
-            ('safety_order_step_scale',      1.56),
-            ('safety_order_price_deviation', 1.3),
-            ('base_order_size_usd',          7750), # in terms of USD
-            ('safety_order_size_usd',        4000), # in terms of USD
-"""
+#         params = (
+#             ('dynamic_dca',                  True),
+#             ('target_profit_percent',        1),
+#             ('safety_orders_max',            7),
+#             ('safety_orders_active_max',     7),
+#             ('safety_order_volume_scale',    2.5),
+#             ('safety_order_step_scale',      1.56),
+#             ('safety_order_price_deviation', 1.3),
+#             ('base_order_size_usd',          7750), # in terms of USD
+#             ('safety_order_size_usd',        4000), # in terms of USD
+# """

@@ -6,7 +6,7 @@ import pandas as pd
 DECIMAL_MAX = 8
 
 
-class DCA():
+class DCAD():
     def __init__(self, entry_price: float, target_profit_percent: float, 
                     safety_orders_max: int, safety_orders_active_max: int, 
                     safety_order_volume_scale: float, safety_order_step_scale: float, 
@@ -22,8 +22,6 @@ class DCA():
         self.profit_levels:                     list          = [ ]
         self.cost_levels:                       list          = [ ]
         self.total_cost_levels:                 list          = [ ]
-        self.base_order_roi:                    float         = 0.0
-        self.safety_order_roi_levels:           list          = [ ]
         self.df_base_order:                     pd.DataFrame  = None
         self.df_safety_orders:                  pd.DataFrame  = None
         self.df:                                pd.DataFrame  = None
@@ -58,8 +56,7 @@ class DCA():
         self.__set_profit_levels()
         self.__set_cost_levels()
         self.__set_total_cost_levels()
-        self.__set_base_order_roi_level()
-        self.__set_safety_order_roi_levels()
+        # self.__set_roi_levels()
         self.__save_safety_order_table()
         self.__save_df_table()
         return
@@ -255,65 +252,6 @@ class DCA():
             self.total_cost_levels.append(total_cost)
         return
 
-    def __set_base_order_roi_level(self) -> None:
-        base_order_entry_value = self.base_order_size * self.entry_price
-        base_order_exit_value  = self.base_order_size * ( self.entry_price + (self.entry_price * (self.target_profit_percent/100)) )
-        base_order_roi         = (base_order_exit_value / base_order_entry_value) - 1.0
-        base_order_roi         *= 100 # convert to percentage
-        self.base_order_roi    = round(base_order_roi, 4)
-        return
-
-    def __set_safety_order_roi_levels(self) -> None:
-        """
-        ROI levels is calculated in relation to the base order roi.
-
-            1. Suppose a base order is placed and sold for a profit (no safety orders were filled).
-                base entry price  = $1.00
-                take profit price = $1.01
-                profit            = $0.01
-
-                roi is 1%
-            
-            2. Now suppose that a base order was placed and safety order number 1 was placed.
-            Both orders are filled along with our take profit order.
-                base entry price           = $1.00
-                safety order 1 entry price = $0.987
-                take profit price          = $1.005623
-                profit                     = $0.014805
-
-                roi is 48% higher than our base order profit
-
-            In conclusion:
-                for each safety order that is filled, the roi increases along with our cash profit in relationship to the base order roi. 
-        
-
-            Side note:
-                We can also calculate the ROI according to the total cost, however this information is not useful because 
-                this number is always 1%.
-                
-        """
-
-        base_order_entry_value = self.base_order_size * self.entry_price
-        base_order_exit_value  = self.base_order_size * ( self.entry_price + (self.entry_price * (self.target_profit_percent/100)) )
-        base_order_profit      = base_order_exit_value - base_order_entry_value
-
-        for i in range(self.safety_orders_max):
-            profit_roi = (self.profit_levels[i] / base_order_profit) - 1
-            profit_roi *= 100
-            profit_roi = round(profit_roi, 4)
-            self.safety_order_roi_levels.append(profit_roi)
-
-        # # 2. We are implementing the second way: in relation to the amount of money spent
-        # for i in range(self.safety_orders_max):
-        #     safety_order_entry_value = self.total_quantities[i] * self.average_price_levels[i]
-        #     safety_order_exit_value  = self.total_quantities[i] * self.required_price_levels[i]
-        #     safety_order_roi         = (safety_order_exit_value / safety_order_entry_value) - 1.0
-        #     safety_order_roi         *= 100 # convert to percentage
-        #     safety_order_roi         = round(safety_order_roi, 4)
-        #     self.safety_order_roi_levels.append(safety_order_roi)
-        return
-
-
     def __save_safety_order_table(self) -> None:
         safety_order_numbers = [i for i in range(1, self.safety_orders_max+1)]
 
@@ -342,16 +280,16 @@ class DCA():
         self.df = pd.DataFrame(
             {
                 'safety_order_number':     safety_order_numbers,
-                'deviation_percent':       [0]                          + self.deviation_percent_levels,
-                'quantity':                [self.base_order_size]       + self.quantities,
-                'total_quantity':          [self.base_order_size]       + self.total_quantities,
-                'price':                   [self.entry_price]           + self.price_levels,
-                'average_price':           [self.entry_price]           + self.average_price_levels,
-                'required_price':          [base_order_required_price]  + self.required_price_levels,
+                'deviation_percent':       [0] + self.deviation_percent_levels,
+                'quantity':                [self.base_order_size] + self.quantities,
+                'total_quantity':          [self.base_order_size] + self.total_quantities,
+                'price':                   [self.entry_price] + self.price_levels,
+                'average_price':           [self.entry_price] + self.average_price_levels,
+                'required_price':          [base_order_required_price] + self.required_price_levels,
                 'required_change_percent': [self.target_profit_percent] + self.required_change_percent_levels,
-                'profit':                  [base_order_profit]          + self.profit_levels,
-                'cost':                    [base_order_cost]            + self.cost_levels,
-                'total_cost':              [base_order_cost]            + self.total_cost_levels
+                'profit':                  [base_order_profit] + self.profit_levels,
+                'cost':                    [base_order_cost] + self.cost_levels,
+                'total_cost':              [base_order_cost] + self.total_cost_levels
             })
         return
 
@@ -368,32 +306,30 @@ class DCA():
         return
     
     def remove_top_safety_order(self) -> None:
-        # if len(self.deviation_percent_levels) > 0 and \
-        #    len(self.deviation_percent_levels) > 0 and \
-        #     len(self.quantities) > 0 and \
-        #     len(self.total_quantities) > 0 and \
-        #     len(self.price_levels) > 0 and \
-        #     len(self.average_price_levels) > 0 and \
-        #     len(self.required_price_levels) > 0 and \
-        #     len(self.required_change_percent_levels) > 0 and \
-        #     len(self.profit_levels) > 0 and \
-        #     len(self.cost_levels) > 0 and \
-        #     len(self.total_cost_levels) > 0:
+        if len(self.deviation_percent_levels) > 0 and \
+           len(self.deviation_percent_levels) > 0 and \
+            len(self.quantities) > 0 and \
+            len(self.total_quantities) > 0 and \
+            len(self.price_levels) > 0 and \
+            len(self.average_price_levels) > 0 and \
+            len(self.required_price_levels) > 0 and \
+            len(self.required_change_percent_levels) > 0 and \
+            len(self.profit_levels) > 0 and \
+            len(self.cost_levels) > 0 and \
+            len(self.total_cost_levels) > 0:
             
-        self.deviation_percent_levels.pop(0)
-        self.quantities.pop(0)
-        self.total_quantities.pop(0)
-        self.price_levels.pop(0)
-        self.average_price_levels.pop(0)
-        self.required_price_levels.pop(0)
-        self.required_change_percent_levels.pop(0)
-        self.profit_levels.pop(0)
-        self.cost_levels.pop(0)
-        self.total_cost_levels.pop(0)
-
-        # else:
-        #     print("Could not remove top safety order..check your code again")
-        #     import sys
-        #     sys.exit()
-
+                self.deviation_percent_levels.pop(0)
+                self.quantities.pop(0)
+                self.total_quantities.pop(0)
+                self.price_levels.pop(0)
+                self.average_price_levels.pop(0)
+                self.required_price_levels.pop(0)
+                self.required_change_percent_levels.pop(0)
+                self.profit_levels.pop(0)
+                self.cost_levels.pop(0)
+                self.total_cost_levels.pop(0)
+        else:
+            print("Could not remove top safety order..check your code again")
+            import sys
+            sys.exit()
         return

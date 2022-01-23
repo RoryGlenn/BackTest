@@ -3,7 +3,6 @@
 
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
-from matplotlib.style import available
 from dca        import DCA
 
 import os
@@ -20,9 +19,11 @@ BNGO          = "historical_data/BNGO.csv"
 
 """
 TODO
-    1. Create a dynamic or static DCA: As our money increases or decreases with the DCA method,
-                                        recalculate our base_order_size and safety_order_size so 
-                                        that the final safety order will use 100% of our money
+    create an optimizer for the DCA settings????
+
+    1. Create a dynamic or static DCA: 
+    make the base order a percentage of starting cash?????
+
     2. PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
     3. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
 
@@ -31,15 +32,15 @@ TODO
 class DCA3C(bt.Strategy):
     # DCA values
     params = (
-        ('dynamic_dca',                  True),
+        ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
-        ('base_order_size_usd',          8100), # in terms of USD
-        ('safety_order_size_usd',        4050), # in terms of USD
+        ('base_order_size_usd',          7750), # in terms of USD
+        ('safety_order_size_usd',        4000), # in terms of USD
     )
 
     def log(self, txt: str, dt=None) -> None:
@@ -95,8 +96,8 @@ class DCA3C(bt.Strategy):
         
         total_cash   = self.broker.get_value()
         upper_limit  = total_cash
-        over = False
-        under = False
+        over         = False
+        under        = False
 
         ### DYNAMIC DCA ##
         while True:
@@ -188,7 +189,6 @@ class DCA3C(bt.Strategy):
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 if order.exectype == 0:
-
                     entry_price       = order.executed.price
                     base_order_size   = order.executed.size
 
@@ -203,7 +203,7 @@ class DCA3C(bt.Strategy):
                                         self.params.safety_order_step_scale,
                                         self.params.safety_order_price_deviation,
                                         base_order_size,
-                                        int(base_order_size/2) # this is temporary...
+                                        base_order_size//2 # this is temporary...
                                     )                        
 
                     take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
@@ -230,7 +230,6 @@ class DCA3C(bt.Strategy):
                 self.is_first_safety_order = True
         elif order.status in [order.Canceled]:
             self.log(f'ORDER CANCELED: Size: {order.size}')
-
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
             if order.issell():
                 self.set_take_profit()
@@ -295,23 +294,53 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)
 
-    df = pd.read_csv(ORACLE)
+    df = pd.read_csv(BNGO)
+
     df.drop(columns=["Adj Close"], inplace=True)
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
+
+    # BNGO
+    data = bt.feeds.PandasData(dataname=df,
+                               fromdate=datetime.datetime(2018, 8, 21),
+                               todate=datetime.datetime(2022, 1, 20)
+                               )
+
     
     # data = bt.feeds.PandasData(dataname=df,
     #                            fromdate=datetime.datetime(1995, 1, 3),
     #                            todate=datetime.datetime(2014, 12, 31),
     #                            openinterest=-1)
 
-    data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(2000, 9, 1),
-                               todate=datetime.datetime(2002, 12, 31),
-                               openinterest=-1)
+    # data = bt.feeds.PandasData(dataname=df,
+    #                            fromdate=datetime.datetime(2000, 9, 1),
+    #                            todate=datetime.datetime(2002, 12, 31),
+    #                            openinterest=-1)
 
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
 
     cerebro.run()
     cerebro.plot()
+
+
+
+"""
+    ^^^^ Finished Backtesting ^^^^^
+    Total time tested:     1248 days, 0:00:00
+    Total Profit:          $1,696,571.520000
+    ROI:                   169.66%
+    Final Portfolio Value: $2,696,571.520000
+
+
+        params = (
+            ('dynamic_dca',                  True),
+            ('target_profit_percent',        1),
+            ('safety_orders_max',            7),
+            ('safety_orders_active_max',     7),
+            ('safety_order_volume_scale',    2.5),
+            ('safety_order_step_scale',      1.56),
+            ('safety_order_price_deviation', 1.3),
+            ('base_order_size_usd',          7750), # in terms of USD
+            ('safety_order_size_usd',        4000), # in terms of USD
+"""

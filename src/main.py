@@ -26,14 +26,18 @@ BNGO          = "historical_data/BNGO.csv"
 """
 TODO
     1. Create an optimizer for the DCA settings.
-        Optimizer will iterate through a large list of settings. 
-        Will try different combinations for 
+        Optimizer will iterate through a large list of settings.
+        Will try different combinations for.
 
     2. implement trailing percent
 
     2. Create a dynamic or static DCA: 
         a. dynamic DCA will be a percentage given for the base order and the safety order.
         b. use_all_cash boolean: Will use all available money on the placement of the final safety order in order to maximize profit.
+        
+        CHECK THIS WORKS BY ENTERING IN THE BASE ORDER PRICE AND SAFETY ORDER PRICE WITH THE REGULUAR DCA.
+        DOUBLE CHECK BOTH OF THESE BY ENTERING IT INTO 3COMMAS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
     3. PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
     4. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
@@ -44,9 +48,12 @@ TODO
 if __name__ == '__main__':
     os.system("cls")
 
-    dca = DCA(1, 1, 7, 7, 2.5, 1.56, 1.3, 1, 0.5)
+    STARTING_CASH = 1000
+    base_order_size = STARTING_CASH*0.0081
+    safety_order_size = base_order_size/2
+
+    dca = DCA(1, 1, 7, 7, 2.5, 1.56, 1.3, base_order_size, safety_order_size)
     dca.print_df_table()
-    
     
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)

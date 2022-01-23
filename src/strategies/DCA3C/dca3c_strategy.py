@@ -145,7 +145,16 @@ class DCA3C(bt.Strategy):
                     base_order_size   = order.executed.size
                     safety_order_size = int(base_order_size/2) # this is temporary
 
+                    # if the last safety order uses all of our cash within a 1% deviation
+                    dca_dynamic_range = 0.01
+                    
+                    total_cash   = self.broker.get_value()
+                    upper_limit  = total_cash
+
+                    ### DYNAMIC DCA ##
                     while True:
+                        bottom_limit = total_cash - (total_cash * dca_dynamic_range)
+
                         self.dca = DCA(entry_price,
                                         self.params.target_profit_percent,
                                         self.params.safety_orders_max,
@@ -157,16 +166,30 @@ class DCA3C(bt.Strategy):
                                         safety_order_size
                                     )
 
-                        # if the last safety order uses all of our cash within a 1% deviation
-                        bottom_limit = self.broker.get_value() * 0.01
-                        upper_limit = self.broker.get_value()
-
                         if bottom_limit > self.dca.total_cost_levels[-1]:
                             safety_order_size += 1
+
+                            test_dca = DCA(entry_price,
+                                        self.params.target_profit_percent,
+                                        self.params.safety_orders_max,
+                                        self.params.safety_orders_active_max,
+                                        self.params.safety_order_volume_scale,
+                                        self.params.safety_order_step_scale,
+                                        self.params.safety_order_price_deviation,
+                                        base_order_size,
+                                        safety_order_size)
+
+                            if upper_limit < test_dca.total_cost_levels[-1]:
+                                print(test_dca.total_cost_levels[-1])
+                                dca_dynamic_range += 0.01
+
                         elif upper_limit < self.dca.total_cost_levels[-1]:
                             safety_order_size -= 1
                         else:
                             break
+                    
+                    if self.dca.total_cost_levels[-1] > total_cash:
+                        print(self.dca.total_cost_levels)
 
                     take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
 

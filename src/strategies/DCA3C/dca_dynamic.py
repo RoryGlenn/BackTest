@@ -6,7 +6,7 @@ import pandas as pd
 DECIMAL_MAX = 8
 
 
-class DCA():
+class DCADynamic():
     def __init__(self, entry_price: float, target_profit_percent: float, 
                     safety_orders_max: int, safety_orders_active_max: int, 
                     safety_order_volume_scale: float, safety_order_step_scale: float, 
@@ -45,6 +45,9 @@ class DCA():
         base order size, safety order size and values from the config file which is set by the user.
 
         """
+
+
+
         self.__set_base_order_levels()
         self.__set_deviation_percentage_levels()
         self.__set_price_levels()
@@ -56,12 +59,11 @@ class DCA():
         self.__set_profit_levels()
         self.__set_cost_levels()
         self.__set_total_cost_levels()
-        # self.__set_roi_levels()
         self.__save_safety_order_table()
         self.__save_df_table()
-        return
 
-    
+        
+        return
 
     def __set_base_order_levels(self) -> None:
         base_order_required_price = self.entry_price + (self.entry_price * self.target_profit_percent/100)

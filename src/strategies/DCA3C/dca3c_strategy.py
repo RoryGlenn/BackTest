@@ -56,16 +56,16 @@ class DCA3C(bt.Strategy):
         # Update TP to include making back the commission
         # self.params.tp += commission
 
-        self.start_cash = 0
-        self.tested_time = None
-
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
         
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
-        self.safety_orders = []
+        self.safety_orders         = []
+
         self.dca                   = None
         self.is_first_safety_order = True
+        self.start_cash            = 0
+        self.tested_time           = None
         return
 
     def money_format(self, money: float) -> str:
@@ -101,32 +101,31 @@ class DCA3C(bt.Strategy):
             required_price             = self.dca.required_price_levels[0]
 
             self.take_profit_order = self.sell(price=required_price,
-                                            size=quantity_to_sell,
-                                            exectype=bt.Order.Limit)
+                                               size=quantity_to_sell,
+                                               exectype=bt.Order.Limit)
             
             self.dca.remove_top_safety_order()
             
             safety_order = self.buy(price=self.dca.price_levels[0],
-                                        size=self.dca.quantities[0],
-                                        exectype=bt.Order.Limit,
-                                        oco=self.take_profit_order) # oco = One Cancel Others
+                                    size=self.dca.quantities[0],
+                                    exectype=bt.Order.Limit,
+                                    oco=self.take_profit_order) # oco = One Cancel Others
         else:
             quantity_to_sell = self.dca.total_quantities[0]
-                        
-            required_price = self.dca.required_price_levels[0]
-
+            required_price   = self.dca.required_price_levels[0]
+            
             self.dca.remove_top_safety_order()
 
             self.take_profit_order = self.sell(price=required_price,
-                                            size=quantity_to_sell,
-                                            exectype=bt.Order.Limit)
+                                               size=quantity_to_sell,
+                                               exectype=bt.Order.Limit)
 
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
                 safety_order = self.buy(price=self.dca.price_levels[0],
-                                            size=self.dca.quantities[0],
-                                            exectype=bt.Order.Limit,
-                                            oco=self.take_profit_order) # oco = One Cancel Others
+                                        size=self.dca.quantities[0],
+                                        exectype=bt.Order.Limit,
+                                        oco=self.take_profit_order) # oco = One Cancel Others
         
         self.safety_orders.append(safety_order)
         
@@ -142,22 +141,36 @@ class DCA3C(bt.Strategy):
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 if order.exectype == 0:
-                    entry_price     = order.executed.price
-                    base_order_size = order.executed.size
+                    entry_price       = order.executed.price
+                    base_order_size   = order.executed.size
+                    safety_order_size = int(base_order_size/2) # this is temporary
 
-                    self.dca = DCA(entry_price,
-                                    self.params.target_profit_percent,
-                                    self.params.safety_orders_max,
-                                    self.params.safety_orders_active_max,
-                                    self.params.safety_order_volume_scale,
-                                    self.params.safety_order_step_scale,
-                                    self.params.safety_order_price_deviation,
-                                    base_order_size,
-                                    int(base_order_size/2) # this is temporary...
-                                )
+                    while True:
+                        self.dca = DCA(entry_price,
+                                        self.params.target_profit_percent,
+                                        self.params.safety_orders_max,
+                                        self.params.safety_orders_active_max,
+                                        self.params.safety_order_volume_scale,
+                                        self.params.safety_order_step_scale,
+                                        self.params.safety_order_price_deviation,
+                                        base_order_size,
+                                        safety_order_size
+                                    )
+
+                        # if the last safety order uses all of our cash within a 1% deviation
+                        bottom_limit = self.broker.get_value() * 0.01
+                        upper_limit = self.broker.get_value()
+
+                        if bottom_limit > self.dca.total_cost_levels[-1]:
+                            safety_order_size += 1
+                        elif upper_limit < self.dca.total_cost_levels[-1]:
+                            safety_order_size -= 1
+                        else:
+                            break
 
                     take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
-                    
+
+                    # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
                                                         size=base_order_size,
                                                         exectype=bt.Order.Limit)
@@ -170,7 +183,7 @@ class DCA3C(bt.Strategy):
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
                     self.safety_orders.append(safety_order)
-                    self.dca.print_df_table()
+                    # self.dca.print_df_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -202,19 +215,13 @@ class DCA3C(bt.Strategy):
         print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
-        entry_price = self.data.close[0]
-        buy_order = self.buy(price=entry_price, 
-                             size=int(self.params.base_order_size_usd/entry_price),
+        entry_price     = self.data.close[0]
+        base_order_size = int(self.params.base_order_size_usd/entry_price)
+
+        buy_order = self.buy(size=base_order_size,
                              exectype=bt.Order.Market)
 
         self.safety_orders.append(buy_order)
-
-        # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
-        # take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
-        
-        # self.take_profit_order = self.sell(price=take_profit_price,
-        #                                     size=int(self.params.base_order_size_usd/entry_price),
-        #                                     exectype=bt.Order.Limit)
         return
 
     def next(self) -> None:
@@ -254,8 +261,12 @@ if __name__ == '__main__':
     df.drop(columns=["Adj Close"], inplace=True)
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
+    
+    # data = bt.feeds.PandasData(dataname=df,
+    #                            fromdate=datetime.datetime(1995, 1, 3),
+    #                            todate=datetime.datetime(2014, 12, 31),
+    #                            openinterest=-1)
 
-    # data = bt.feeds.PandasData(dataname=df, openinterest=-1)
     data = bt.feeds.PandasData(dataname=df,
                                fromdate=datetime.datetime(2000, 9, 1),
                                todate=datetime.datetime(2002, 12, 31),

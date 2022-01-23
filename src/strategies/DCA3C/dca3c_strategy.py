@@ -150,6 +150,8 @@ class DCA3C(bt.Strategy):
                     
                     total_cash   = self.broker.get_value()
                     upper_limit  = total_cash
+                    over = False
+                    under = False
 
                     ### DYNAMIC DCA ##
                     while True:
@@ -166,29 +168,23 @@ class DCA3C(bt.Strategy):
                                         safety_order_size
                                     )
 
+                        if over and under:
+                            dca_dynamic_range += 0.01
+                            over  = False
+                            under = False
+                            continue
+                        
                         if bottom_limit > self.dca.total_cost_levels[-1]:
                             safety_order_size += 1
-
-                            test_dca = DCA(entry_price,
-                                        self.params.target_profit_percent,
-                                        self.params.safety_orders_max,
-                                        self.params.safety_orders_active_max,
-                                        self.params.safety_order_volume_scale,
-                                        self.params.safety_order_step_scale,
-                                        self.params.safety_order_price_deviation,
-                                        base_order_size,
-                                        safety_order_size)
-
-                            if upper_limit < test_dca.total_cost_levels[-1]:
-                                print(test_dca.total_cost_levels[-1])
-                                dca_dynamic_range += 0.01
-
+                            under = True
                         elif upper_limit < self.dca.total_cost_levels[-1]:
                             safety_order_size -= 1
+                            over = True
                         else:
                             break
                     
-                    if self.dca.total_cost_levels[-1] > total_cash:
+                    if self.dca.total_cost_levels[-1] >= total_cash:
+                        # this should never happen!!!
                         print(self.dca.total_cost_levels)
 
                     take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )

@@ -15,6 +15,9 @@ import pandas     as pd
 
 import datetime
 import os
+import sys
+
+from strategies.DCA3C.dca_dynamic import DCADynamic
 
 
 STARTING_CASH = 1000000
@@ -29,7 +32,7 @@ TODO
         Optimizer will iterate through a large list of settings.
         Will try different combinations for.
 
-    2. implement trailing percent
+    2. Implement trailing percent
 
     2. Create a dynamic or static DCA: 
         a. dynamic DCA will be a percentage given for the base order and the safety order.
@@ -52,8 +55,38 @@ if __name__ == '__main__':
     base_order_size = STARTING_CASH*0.0081
     safety_order_size = base_order_size/2
 
-    dca = DCA(1, 1, 7, 7, 2.5, 1.56, 1.3, base_order_size, safety_order_size)
+    # ADA
+    # dca = DCA(entry_price=1.076,
+    #           target_profit_percent=1,
+    #           safety_orders_max=7,
+    #           safety_orders_active_max=7,
+    #           safety_order_volume_scale=2.5,
+    #           safety_order_step_scale=1.56,
+    #           safety_order_price_deviation=1.3,
+    #           base_order_size=1,
+    #           safety_order_size=1)
+
+
+    dca = DCA(entry_price_usd=2364.33,
+              target_profit_percent=1,
+              safety_orders_max=7,
+              safety_orders_active_max=7,
+              safety_order_volume_scale=2.5,
+              safety_order_step_scale=1.56,
+              safety_order_price_deviation=1.3,
+            #   base_order_size_usd=10,
+            #   safety_order_size_usd=10,
+              base_order_size=1,
+              safety_order_size=1
+              )
+
     dca.print_df_table()
+
+
+    # dca = DCADynamic(1, 1, 7, 7, 2.5, 1.56, 1.3, STARTING_CASH)
+    # print(dca.deviation_percent_levels)
+    # print(dca.price_levels)
+    sys.exit()
     
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)

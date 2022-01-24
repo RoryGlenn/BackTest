@@ -1,22 +1,21 @@
 # Dollar Cost Averaging Strategy
     # https://community.backtrader.com/topic/4010/dollar-cost-averaging-strategy/15
 
-from __future__ import (absolute_import, division, print_function, unicode_literals)
+from __future__           import (absolute_import, division, print_function, unicode_literals)
 from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
 import time
 
+
 STARTING_CASH = 1000000
 
 
-
-
 class DCA3C(bt.Strategy):
-    # DCA values
     params = (
-        ('dynamic_dca',                  True),
+        ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
+        ('trail_percent',                0.2),
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
@@ -137,33 +136,35 @@ class DCA3C(bt.Strategy):
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
-            quantity_to_sell           = self.dca.total_quantities[0]
+            quantity_to_sell           = self.dca.total_quantity_levels_usd[0]
             required_price             = self.dca.required_price_levels[0]
 
             self.take_profit_order = self.sell(price=required_price,
                                                size=quantity_to_sell,
-                                               exectype=bt.Order.Limit)
+                                               trailpercent=self.params.trail_percent,
+                                               exectype=bt.Order.StopTrail)
             
             self.dca.remove_top_safety_order()
             
             safety_order = self.buy(price=self.dca.price_levels[0],
-                                    size=self.dca.quantities[0],
+                                    size=self.dca.safety_order_quantity_levels_usd[0],
                                     exectype=bt.Order.Limit,
                                     oco=self.take_profit_order) # oco = One Cancel Others
         else:
-            quantity_to_sell = self.dca.total_quantities[0]
+            quantity_to_sell = self.dca.total_quantity_levels_usd[0]
             required_price   = self.dca.required_price_levels[0]
             
             self.dca.remove_top_safety_order()
 
             self.take_profit_order = self.sell(price=required_price,
                                                size=quantity_to_sell,
-                                               exectype=bt.Order.Limit)
+                                               trailpercent=self.params.trail_percent,
+                                               exectype=bt.Order.StopTrail)
 
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
                 safety_order = self.buy(price=self.dca.price_levels[0],
-                                        size=self.dca.quantities[0],
+                                        size=self.dca.safety_order_quantity_levels_usd[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
         
@@ -196,19 +197,20 @@ class DCA3C(bt.Strategy):
                                         self.params.safety_order_price_deviation,
                                         base_order_size,
                                         base_order_size//2 # this is temporary...
-                                    )                        
+                                    )
 
                     take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
 
                     # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
                                                         size=base_order_size,
-                                                        exectype=bt.Order.Limit)
+                                                        trailpercent=self.params.trail_percent,
+                                                        exectype=bt.Order.StopTrail)
 
                     """instead of submitting the takeprofit and all safety orders at a single time,
                     submit one safety order and one take profit order until one of them is canceled!"""
                     safety_order = self.buy(price=self.dca.price_levels[0],
-                                                size=self.dca.quantities[0],
+                                                size=self.dca.safety_order_quantity_levels_usd[0],
                                                 exectype=bt.Order.Limit,
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 

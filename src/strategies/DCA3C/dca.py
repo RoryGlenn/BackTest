@@ -260,17 +260,19 @@ class DCA():
         prev = 0
 
         if self.base_order_size_usd == 0:
-            # prev = self.base_order_cost
-            base_order_size = self.base_order_size_usd / self.entry_price_usd
-            prev            = base_order_size
+            base_order_size = self.base_order_cost / self.entry_price_usd
+            prev = base_order_size
         else:
             prev = self.base_order_size
+        
+        # base order quantity
+        self.total_quantity_levels.append(prev)
         
         for i in range(self.safety_orders_max):
             sum = prev + self.safety_order_quantity_levels[i]
             sum = round(sum, DECIMAL_MAX)
             self.total_quantity_levels.append(sum)
-            prev = self.total_quantity_levels[i]
+            prev = sum
         return
 
     def __set_total_quantity_usd_levels(self) -> None:
@@ -289,7 +291,7 @@ class DCA():
             sum = prev + self.safety_order_quantity_levels_usd[i]
             sum = round(sum, DECIMAL_MAX)
             self.total_quantity_levels_usd.append(sum)
-            print(self.total_quantity_levels_usd)
+            # print(self.total_quantity_levels_usd)
             prev = sum
         return
     
@@ -405,20 +407,6 @@ class DCA():
 
         """
 
-        # base_order_profit      = 0
-        # base_order_entry_value = 0
-        # base_order_exit_value  = 0
-
-        # if self.base_order_size_usd == 0:
-        #     base_order_size_usd    = self.entry_price_usd * self.base_order_size
-        #     base_order_entry_value = base_order_size_usd * self.entry_price_usd
-        #     base_order_exit_value  = base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )            
-        # else:
-        #     base_order_entry_value = self.base_order_size_usd * self.entry_price_usd
-        #     base_order_exit_value  = self.base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
-        
-        # base_order_profit = base_order_exit_value - base_order_entry_value
-
         for i in range(self.safety_orders_max):
             profit_roi = (self.profit_levels[i] / self.base_order_profit) - 1
             profit_roi *= 100
@@ -426,43 +414,8 @@ class DCA():
             self.safety_order_roi_levels.append(profit_roi)
         return
 
-    # def __set_safety_order_table(self) -> None:
-    #     safety_order_numbers = [i for i in range(1, self.safety_orders_max+1)]
-
-    #     self.df_safety_orders = pd.DataFrame(
-    #         {
-    #             'safety_order_number':     safety_order_numbers,
-    #             'deviation_percent':       self.deviation_percent_levels,
-    #             'quantity_usd':            self.safety_order_quantity_levels_usd,
-    #             'total_quantity_usd':      self.total_quantity_levels_usd,
-    #             'price':                   self.price_levels,
-    #             'weighted_average_price':  self.average_price_levels,
-    #             'required_price':          self.required_price_levels,
-    #             'required_change_percent': self.required_change_percent_levels,
-    #             'profit':                  self.profit_levels,
-    #             'cost':                    self.cost_levels,
-    #             'total_cost':              self.total_cost_levels,
-    #             'roi_percent':             self.safety_order_roi_levels
-    #         })
-    #     return
-                
     def __set_df_table(self) -> None:
         safety_order_numbers      = [i for i in range(self.safety_orders_max+1)]
-        # base_order_cost           = 0
-        # base_order_profit         = 0
-        # base_order_required_price = self.entry_price_usd + ( self.entry_price_usd * (self.target_profit_percent/100) )
-
-        # if self.base_order_size > 0 and self.safety_order_size > 0 and \
-        #     self.base_order_size_usd == 0 and self.safety_order_size_usd == 0:
-        #     # quantity of coin to buy determines usd spent
-        #     base_order_cost   = self.entry_price_usd * self.base_order_size
-        #     base_order_profit = (base_order_required_price - self.entry_price_usd) * self.base_order_size            
-        # elif self.base_order_size_usd > 0 and self.safety_order_size_usd > 0 and \
-        #     self.base_order_size == 0 and self.safety_order_size == 0:
-        #     # usd spent determines quantity to buy
-        #     base_order_cost      = self.base_order_size_usd
-        #     self.base_order_size = self.base_order_size_usd / self.entry_price_usd
-        #     base_order_profit    = (base_order_required_price - self.entry_price_usd) * self.base_order_size
         
         self.df = pd.DataFrame(
             {

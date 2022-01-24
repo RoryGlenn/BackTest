@@ -14,7 +14,7 @@ class DCA():
     def __init__(self, entry_price_usd: float, target_profit_percent: float, 
                     safety_orders_max: int, safety_orders_active_max: int, 
                     safety_order_volume_scale: float, safety_order_step_scale: float, 
-                    safety_order_price_deviation: float, base_order_size_usd: float=0.0,
+                    safety_order_price_deviation_percent: float, base_order_size_usd: float=0.0,
                     safety_order_size_usd: float=0.0, base_order_size: float=0.0,
                     safety_order_size: float=0.0, max_cash: bool=False) -> None:
 
@@ -40,17 +40,17 @@ class DCA():
         self.df:                                pd.DataFrame  = None
 
         # values to be passed in
-        self.entry_price_usd:              float = entry_price_usd
-        self.target_profit_percent:        float = target_profit_percent
-        self.safety_orders_max:            int   = safety_orders_max
-        self.safety_orders_active_max:     int   = safety_orders_active_max
-        self.safety_order_volume_scale:    float = safety_order_volume_scale
-        self.safety_order_step_scale:      float = safety_order_step_scale
-        self.safety_order_price_deviation: float = safety_order_price_deviation
-        self.base_order_size_usd:          float = base_order_size_usd
-        self.safety_order_size_usd:        float = safety_order_size_usd
-        self.base_order_size:              float = base_order_size
-        self.safety_order_size:            float = safety_order_size
+        self.entry_price_usd:                      float = entry_price_usd
+        self.target_profit_percent:                float = target_profit_percent
+        self.safety_orders_max:                    int   = safety_orders_max
+        self.safety_orders_active_max:             int   = safety_orders_active_max
+        self.safety_order_volume_scale:            float = safety_order_volume_scale
+        self.safety_order_step_scale:              float = safety_order_step_scale
+        self.safety_order_price_deviation_percent: float = safety_order_price_deviation_percent
+        self.base_order_size_usd:                  float = base_order_size_usd
+        self.safety_order_size_usd:                float = safety_order_size_usd
+        self.base_order_size:                      float = base_order_size
+        self.safety_order_size:                    float = safety_order_size
 
         if max_cash:
             # dynamically sizes the safety orders volume of the safety_order_size variable
@@ -66,28 +66,28 @@ class DCA():
         base order size, safety order size and values from the config file which is set by the user.
 
         """
-        self.__set_base_order_levels()
+        # self.__set_base_order_levels()
         self.__set_deviation_percent_levels()
         self.__set_price_levels()
-        
 
-        if self.base_order_size_usd > 0 and self.safety_order_size_usd > 0 and \
-            self.base_order_size == 0 and self.safety_order_size == 0:
-            self.__set_quantity_usd_levels()
-            self.__set_quantity_levels()
         if self.base_order_size > 0 and self.safety_order_size > 0 and \
             self.base_order_size_usd == 0 and self.safety_order_size_usd == 0:
+            # quantity of coin to buy determines usd spent
             self.__set_quantity_levels()
+            self.__set_quantity_usd_levels_dependent()
+        elif self.base_order_size_usd > 0 and self.safety_order_size_usd > 0 and \
+            self.base_order_size == 0 and self.safety_order_size == 0:
+            # usd spent determines quantity to buy
             self.__set_quantity_usd_levels()
+            self.__set_quantity_levels_dependent()
         else:
             print("Invalid sizes for base order and/or safety order")
             sys.exit()
-        
-        # self.__set_total_quantity_levels()
+
+        self.__set_total_quantity_levels()
         self.__set_total_quantity_usd_levels()
         
         self.__set_weighted_average_price_levels()
-        
         self.__set_required_price_levels()
         self.__set_required_change_percentage_levels()
         self.__set_profit_levels()
@@ -97,34 +97,6 @@ class DCA():
         self.__set_safety_order_roi_levels()
         self.__set_safety_order_table()
         self.__set_df_table()
-        return
-
-    def __set_base_order_levels(self) -> None:
-        base_order_required_price = self.entry_price_usd + (self.entry_price_usd * self.target_profit_percent/100)
-        base_order_cost           = self.entry_price_usd * self.base_order_size_usd
-        base_order_profit         = (base_order_required_price - self.entry_price_usd) * self.base_order_size_usd
-
-        """
-        Base order profit:
-            buy  at $1.00, quantity 2
-            sell at $1.10, quantity 2
-            profit = (sell price - buy price) * quantity_sold
-            Therefore, the profit would be $0.20
-        
-        """
-
-        self.df_base_order = pd.DataFrame({
-                'deviation_percentage':       0,
-                'quantity':                   self.base_order_size_usd,
-                'total_quantity':             self.base_order_size_usd,
-                'price':                      self.entry_price_usd,
-                'average_price':              self.entry_price_usd,
-                'required_price':             base_order_required_price,
-                'required_change_percentage': self.target_profit_percent,
-                'profit':                     base_order_profit,
-                'cost':                       base_order_cost,
-                'total_cost':                 base_order_cost
-        }, index=[0])
         return
 
     def __set_deviation_percent_levels(self) -> None:
@@ -159,7 +131,7 @@ class DCA():
         For more info: https://help.3commas.io/en/articles/3108940-main-settings
         """
 
-        price_dev  = self.safety_order_price_deviation
+        price_dev  = self.safety_order_price_deviation_percent
         step_scale = self.safety_order_step_scale
         
         if self.safety_orders_max >= 1:
@@ -195,25 +167,6 @@ class DCA():
 
     def __set_quantity_levels(self) -> None:
         """Sets the quantity to buy for each safety order number."""
-        
-         # amount of money to spend is determined by the base order size and safety order size
-
-
-        # Check if the size is in terms of USD
-        # quantity of coin to buy is determined by USD
-        # first_safety_order_entry_price = self.entry_price_usd - ( self.entry_price_usd  * (self.safety_order_price_deviation/100) )
-        
-        # # prev_so_quantity               = self.safety_order_size_usd/first_safety_order_entry_price
-        # prev_so_quantity               = self.safety_order_size / first_safety_order_entry_price
-        # prev_so_quantity               = round(prev_so_quantity, DECIMAL_MAX)
-
-        # # first safety order
-        # self.safety_order_quantity_levels.append(prev_so_quantity)
-
-        # for i in range(1, self.safety_orders_max):
-        #     safety_order_quantity = self.safety_order_quantity_levels_usd[i] / self.price_levels[i]
-        #     safety_order_quantity = round(safety_order_quantity, DECIMAL_MAX)
-        #     self.safety_order_quantity_levels.append(safety_order_quantity)
 
         # amount of money to spend is determined by the base order size and safety order size
         prev_so_quantity = self.safety_order_size
@@ -226,26 +179,80 @@ class DCA():
             so_quantity = round(self.safety_order_volume_scale * prev_so_quantity, DECIMAL_MAX)
             self.safety_order_quantity_levels.append(so_quantity)
             prev_so_quantity = self.safety_order_volume_scale * prev_so_quantity
+        return
 
-        # print("safety_order_quantity_levels", self.safety_order_quantity_levels)
+    def __set_quantity_levels_dependent(self) -> None:
+        """
+        WARNING: 
+            This function should only be called when the user wants to make trades based on USD rather than coin quantity
+            Because of this, it is dependent on __set_quantity_usd_levels()
+        
+            In other words, the amount of money to spend is determined by the base_order_size_usd and 
+            safety_order_size_usd variables and cannot be calculated indepentendly of them!
+
+            Call these two functions like so:
+                self.__set_quantity_usd_levels()
+                self.__set_quantity_levels_dependent()
+
+        """
+
+        self.base_order_size_usd
+
+        for i in range(self.safety_orders_max):
+            so_quantity = self.price_levels[i] * self.safety_order_quantity_levels_usd[i]
+            so_quantity = round(so_quantity, DECIMAL_MAX)
+            self.safety_order_quantity_levels.append(so_quantity)
+        return
+
+
+    def __set_quantity_usd_levels_dependent(self) -> None:
+        """
+        WARNING: 
+            This function should only be called when the user wants to make trades based on coin quantity rather than USD
+            Because of this, it is dependent on __set_quantity_levels()
+        
+            In other words, the amount of money to spend is determined by the base_order_size and safety_order_size variables
+            and cannot be calculated indepentendly of them!
+
+            Call these two functions like so:
+                self.__set_quantity_levels()
+                self.__set_quantity_usd_levels_dependent()
+
+        """
+
+        for i in range(self.safety_orders_max):
+            usd_quantity = self.price_levels[i] * self.safety_order_quantity_levels[i]
+            usd_quantity = round(usd_quantity, DECIMAL_MAX)
+            self.safety_order_quantity_levels_usd.append(usd_quantity)
         return
 
     def __set_quantity_usd_levels(self) -> None:
-        """Sets the USD quantity to buy for each safety order number."""
-        prev = self.safety_order_size_usd
+        # amount of money to spend is determined by the base order size and safety order size
+        prev_so_usd_quantity = self.safety_order_size_usd
         
         # first safety order
-        self.safety_order_quantity_levels_usd.append(self.safety_order_size_usd)
+        self.safety_order_quantity_levels_usd.append(prev_so_usd_quantity)
 
         # remaining safety orders
         for _ in range(1, self.safety_orders_max):
-            quantity = round(self.safety_order_volume_scale * prev, DECIMAL_MAX)
-            self.safety_order_quantity_levels_usd.append(quantity)
-            prev *= self.safety_order_volume_scale
-        
-        print("safety_order_quantity_levels_usd", self.safety_order_quantity_levels_usd)
+            so_quantity = round(self.safety_order_volume_scale * prev_so_usd_quantity, DECIMAL_MAX)
+            self.safety_order_quantity_levels_usd.append(so_quantity)
+            prev_so_usd_quantity = self.safety_order_volume_scale * prev_so_usd_quantity
+
         return
-    
+
+    def __set_total_quantity_levels(self) -> None:
+        """Sets the total quantity bought at each level."""
+        prev = self.base_order_size
+        
+        for i in range(self.safety_orders_max):
+            sum = prev + self.safety_order_quantity_levels[i]
+            sum = round(sum, DECIMAL_MAX)
+            self.total_quantity_levels.append(sum)
+            prev = self.total_quantity_levels[i]
+        return
+
+
     def __set_total_quantity_usd_levels(self) -> None:
         """Sets the total quantity bought at each level."""
         prev = self.base_order_size_usd
@@ -395,19 +402,32 @@ class DCA():
         return
                 
     def __set_df_table(self) -> None:
-        safety_order_numbers = [i for i in range(self.safety_orders_max+1)]
-        base_order_required_price = self.entry_price_usd + (self.entry_price_usd * self.target_profit_percent/100)
-        base_order_cost           = self.entry_price_usd * self.base_order_size_usd
-        base_order_profit         = (base_order_required_price - self.entry_price_usd) * self.base_order_size_usd
+        safety_order_numbers      = [i for i in range(self.safety_orders_max+1)]
+        base_order_cost           = 0
+        base_order_profit         = 0
+        base_order_required_price = self.entry_price_usd + ( self.entry_price_usd * (self.target_profit_percent/100) )
+
+        if self.base_order_size > 0 and self.safety_order_size > 0 and \
+            self.base_order_size_usd == 0 and self.safety_order_size_usd == 0:
+            # quantity of coin to buy determines usd spent
+            base_order_cost   = self.entry_price_usd * self.base_order_size
+            base_order_profit = (base_order_required_price - self.entry_price_usd) * self.base_order_size            
+        elif self.base_order_size_usd > 0 and self.safety_order_size_usd > 0 and \
+            self.base_order_size == 0 and self.safety_order_size == 0:
+            # usd spent determines quantity to buy
+            base_order_cost      = self.entry_price_usd * self.base_order_size_usd
+            base_order_profit    = (base_order_required_price - self.entry_price_usd) * self.base_order_size_usd
+            self.base_order_size = self.base_order_size_usd / self.entry_price_usd
 
         self.df = pd.DataFrame(
             {
                 'safety_order_number':     safety_order_numbers,
                 'deviation_percent':       [0]                          + self.deviation_percent_levels,
-                'quantity_usd':            [self.base_order_size_usd]       + self.safety_order_quantity_levels_usd,
-                'total_quantity_usd':      [self.base_order_size_usd]       + self.total_quantity_levels_usd,
-                'price':                   [self.entry_price_usd]           + self.price_levels,
-                'weighted_average_price':  [self.entry_price_usd]           + self.average_price_levels,
+                'quantity':                [self.base_order_size]       + self.safety_order_quantity_levels,
+                'quantity_usd':            [self.base_order_size_usd]   + self.safety_order_quantity_levels_usd,
+                'total_quantity_usd':      [self.base_order_size_usd]   + self.total_quantity_levels_usd,
+                'price':                   [self.entry_price_usd]       + self.price_levels,
+                'weighted_average_price':  [self.entry_price_usd]       + self.average_price_levels,
                 'required_price':          [base_order_required_price]  + self.required_price_levels,
                 'required_change_percent': [self.target_profit_percent] + self.required_change_percent_levels,
                 'profit':                  [base_order_profit]          + self.profit_levels,
@@ -421,11 +441,7 @@ class DCA():
         print(self.df_safety_orders)
         return
     
-    def print_bo_table(self) -> None:
-        print(self.df_base_order)
-        return
-    
-    def print_df_table(self) -> None:
+    def print_table(self) -> None:
         print(self.df)
         return
     

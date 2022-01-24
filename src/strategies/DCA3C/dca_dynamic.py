@@ -29,7 +29,7 @@ class DCADynamic():
         self.total_cost_levels:                 list          = [ ]
         self.base_order_roi:                    float         = 0.0
         self.safety_order_roi_levels:           list          = [ ]
-        self.df_base_order:                     pd.DataFrame  = None
+        # self.df_base_order:                     pd.DataFrame  = None
         self.df_safety_orders:                  pd.DataFrame  = None
         self.df:                                pd.DataFrame  = None
 

@@ -47,10 +47,12 @@ class DCA():
         self.safety_order_volume_scale:            float = safety_order_volume_scale
         self.safety_order_step_scale:              float = safety_order_step_scale
         self.safety_order_price_deviation_percent: float = safety_order_price_deviation_percent
+        
         self.base_order_size_usd:                  float = base_order_size_usd
-        self.safety_order_size_usd:                float = safety_order_size_usd
         self.base_order_size:                      float = base_order_size
         self.safety_order_size:                    float = safety_order_size
+        self.safety_order_size_usd:                float = safety_order_size_usd
+
 
         if max_cash:
             # dynamically sizes the safety orders volume of the safety_order_size variable
@@ -329,8 +331,14 @@ class DCA():
         return
 
     def __set_base_order_roi_level(self) -> None:
-        base_order_entry_value = self.base_order_size_usd * self.entry_price_usd
-        base_order_exit_value  = self.base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
+        if self.base_order_size_usd == 0:
+            base_order_size_usd    = self.entry_price_usd * self.base_order_size
+            base_order_entry_value = base_order_size_usd * self.entry_price_usd
+            base_order_exit_value  = base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
+        else:
+            base_order_entry_value = self.base_order_size_usd * self.entry_price_usd
+            base_order_exit_value  = self.base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
+
         base_order_roi         = (base_order_exit_value / base_order_entry_value) - 1.0
         base_order_roi         *= 100 # convert to percentage
         self.base_order_roi    = round(base_order_roi, 4)
@@ -338,7 +346,7 @@ class DCA():
 
     def __set_safety_order_roi_levels(self) -> None:
         """
-        ROI levels is calculated in relation to the base order roi.
+        ROI levels is calculated in relation to the base order profit.
 
             1. Suppose a base order is placed and sold for a profit (no safety orders were filled).
                 base entry price  = $1.00
@@ -365,9 +373,19 @@ class DCA():
 
         """
 
-        base_order_entry_value = self.base_order_size_usd * self.entry_price_usd
-        base_order_exit_value  = self.base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
-        base_order_profit      = base_order_exit_value - base_order_entry_value
+        base_order_profit      = 0
+        base_order_entry_value = 0
+        base_order_exit_value  = 0
+
+        if self.base_order_size_usd == 0:
+            base_order_size_usd    = self.entry_price_usd * self.base_order_size
+            base_order_entry_value = base_order_size_usd * self.entry_price_usd
+            base_order_exit_value  = base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )            
+        else:
+            base_order_entry_value = self.base_order_size_usd * self.entry_price_usd
+            base_order_exit_value  = self.base_order_size_usd * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
+        
+        base_order_profit = base_order_exit_value - base_order_entry_value
 
         for i in range(self.safety_orders_max):
             profit_roi = (self.profit_levels[i] / base_order_profit) - 1
@@ -423,8 +441,8 @@ class DCA():
                 'quantity':                [self.base_order_size]       + self.safety_order_quantity_levels,
                 'total_quantity':          [self.base_order_size]       + self.total_quantity_levels,
 
-                'quantity_usd':            [self.base_order_size_usd]   + self.safety_order_quantity_levels_usd,
-                'total_quantity_usd':      [self.base_order_size_usd]   + self.total_quantity_levels_usd,
+                'quantity_usd':            [base_order_cost]            + self.safety_order_quantity_levels_usd,
+                'total_quantity_usd':      [base_order_cost]            + self.total_quantity_levels_usd,
 
                 'price':                   [self.entry_price_usd]       + self.price_levels,
                 'weighted_average_price':  [self.entry_price_usd]       + self.average_price_levels,
@@ -437,7 +455,6 @@ class DCA():
 
                 'cost':                    [base_order_cost]            + self.cost_levels,
                 'total_cost':              [base_order_cost]            + self.total_cost_levels,
-
             })
             
         return

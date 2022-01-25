@@ -337,18 +337,22 @@ class DCA():
         """The more safety orders that are filled, the larger the profit will be.
         Each profit level is based on the previous profit level except for the base order."""
         
-        # prev = 0
+        prev_profit = 0
 
-        # if self.base_order_size_usd == 0:
-        #     prev = self.entry_price_usd * self.base_order_size
-        # else:
-        #     prev = self.base_order_size_usd
+        if self.base_order_size_usd == 0:
+            base_order_entry_value = self.entry_price_usd * self.base_order_size
+            base_order_exit_value  = self.base_order_size * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
+            prev_profit            = base_order_exit_value - base_order_entry_value
+        else:
+            base_order_exit_value  = self.base_order_size_usd + ( self.base_order_size_usd * (self.target_profit_percent/100) )
+            prev_profit            = base_order_exit_value - self.base_order_size_usd
 
         for i in range(self.safety_orders_max):
             so_entry_value = self.price_levels[i] * self.safety_order_quantity_levels[i]
             so_exit_value  = self.required_price_levels[i] * self.safety_order_quantity_levels[i]
-            profit         = so_exit_value - so_entry_value
+            profit         = so_exit_value - so_entry_value + prev_profit
             self.profit_levels.append(profit)
+            prev_profit = profit
         return
 
     def __set_base_order_roi_level(self) -> None:
@@ -394,7 +398,7 @@ class DCA():
         """
 
         for i in range(self.safety_orders_max):
-            profit_roi = (self.profit_levels[i] / self.base_order_profit) - 1
+            profit_roi = (self.profit_levels[i] / self.target_profit_percent) - 1
             profit_roi *= 100
             self.safety_order_roi_levels.append(profit_roi)
         return
@@ -421,7 +425,7 @@ class DCA():
                 'required_price':          [self.base_order_required_price]  + self.required_price_levels,
                 'required_change_percent': [self.target_profit_percent]      + self.required_change_percent_levels,
                 'profit':                  [self.base_order_profit]          + self.profit_levels,
-                'profit_roi_percent':      [self.base_order_roi]             + self.safety_order_roi_levels
+                'profit_roi_percent':      [self.target_profit_percent]      + self.safety_order_roi_levels
             })
             
         return

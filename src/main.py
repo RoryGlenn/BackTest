@@ -9,6 +9,7 @@
 
 from strategies.DCA3C.dca3c_strategy import DCA3C
 from strategies.DCA3C.dca3c_strategy import DCA
+from strategies.DCA3C.buy_and_hold import BuyAndHold
 
 import backtrader as bt
 import pandas     as pd
@@ -32,7 +33,7 @@ TODO
         Optimizer will iterate through a large list of settings.
         Will try different combinations for.
 
-    2. Implement trailing percent
+    2. Implement trailing percent       DONE
 
     2. Create a dynamic or static DCA: 
         a. dynamic DCA will be a percentage given for the base order and the safety order.
@@ -51,24 +52,20 @@ TODO
 if __name__ == '__main__':
     os.system("cls")
  
-    # STARTING_CASH     = 1000
-    # base_order_size   = STARTING_CASH*0.0081
-    # safety_order_size = base_order_size/2
-
-    # ERROR
-    dca = DCA(entry_price_usd=0.39,
-              target_profit_percent=1,
-              safety_orders_max=7,
-              safety_orders_active_max=7,
-              safety_order_volume_scale=2.5,
-              safety_order_step_scale=1.56,
-              safety_order_price_deviation_percent=1.3,
-            #   base_order_size_usd=10,
-            #   safety_order_size_usd=10
-              base_order_size=20945,
-              safety_order_size=20945//2
-            )
-    dca.print_table()
+    # # ERROR
+    # dca = DCA(entry_price_usd=25.860001,
+    #           target_profit_percent=1,
+    #           safety_orders_max=7,
+    #           safety_orders_active_max=7,
+    #           safety_order_volume_scale=2.5,
+    #           safety_order_step_scale=1.56,
+    #           safety_order_price_deviation_percent=1.3,
+    #         #   base_order_size_usd=10,
+    #         #   safety_order_size_usd=10
+    #           base_order_size=300.000000,
+    #           safety_order_size=300.000000//2
+    #         )
+    # dca.print_table()
 
     # dca = DCADynamic(1, 1, 7, 7, 2.5, 1.56, 1.3, STARTING_CASH)
     # print(dca.deviation_percent_levels)
@@ -78,16 +75,26 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)
 
-    df         = pd.read_csv(BNGO)
+    # df         = pd.read_csv(BNGO)
+    df = pd.read_csv(ORACLE)
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     
     df.set_index('Date', inplace=True)
-    
+
+    # BNGO
+    # data = bt.feeds.PandasData(dataname=df,
+    #                            fromdate=datetime.datetime(2018, 8, 21),
+    #                            todate=datetime.datetime(2022, 1, 20))
+
+    # ORACLE
     data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(2018, 8, 21),
-                               todate=datetime.datetime(2022, 1, 20))
+                               fromdate=datetime.datetime(1995, 1, 3),
+                               todate=datetime.datetime(2014, 12, 31)
+                            )
+
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(BuyAndHold)
 
     cerebro.run()
     cerebro.plot()

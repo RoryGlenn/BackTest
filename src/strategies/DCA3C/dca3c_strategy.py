@@ -6,6 +6,7 @@ from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
 import time
+import datetime
 
 
 STARTING_CASH = 1000000
@@ -66,6 +67,9 @@ class DCA3C(bt.Strategy):
         return "${:,.6f}".format(money)
 
     def print_ohlc(self) -> None:
+        if self.data.open[0] == 25.860001:
+            pass
+
         date  = self.data.datetime.date()
         open  = self.money_format(self.data.open[0])
         high  = self.money_format(self.data.high[0])
@@ -191,15 +195,15 @@ class DCA3C(bt.Strategy):
                     if self.params.dynamic_dca:
                         self.dynamic_dca(entry_price, base_order_size)
                     else:
-                        self.dca = DCA(entry_price,
-                                        self.params.target_profit_percent,
-                                        self.params.safety_orders_max,
-                                        self.params.safety_orders_active_max,
-                                        self.params.safety_order_volume_scale,
-                                        self.params.safety_order_step_scale,
-                                        self.params.safety_order_price_deviation,
-                                        base_order_size,
-                                        base_order_size//2 # this is temporary...
+                        self.dca = DCA( entry_price_usd=entry_price,
+                                        target_profit_percent=self.params.target_profit_percent,
+                                        safety_orders_max=self.params.safety_orders_max,
+                                        safety_orders_active_max=self.params.safety_orders_active_max,
+                                        safety_order_volume_scale=self.params.safety_order_volume_scale,
+                                        safety_order_step_scale=self.params.safety_order_step_scale,
+                                        safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
+                                        base_order_size=base_order_size,
+                                        safety_order_size=base_order_size//2
                                     )
 
                     take_profit_price = self.dca.base_order_required_price
@@ -270,14 +274,12 @@ class DCA3C(bt.Strategy):
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
-        print(f"Starting Portfolio Value: {self.start_cash}")
         return
 
     def stop(self) -> None:
         time_elapsed = self.get_elapsed_time(self.start_time)
 
         total_value  = round(self.broker.get_value()+self.broker.get_cash(), 2)
-        value        = self.broker.get_value()
         profit       = round(total_value - self.start_cash, 2)
         roi          = ((total_value / self.start_cash) - 1.0) * 100
         roi          = '{:.2f}%'.format(roi)

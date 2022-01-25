@@ -1,15 +1,8 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 
-import os
 
 import backtrader as bt
-import pandas     as pd
-import datetime
-
-
-STARTING_CASH = 1000000
-ORACLE        = "historical_data/oracle.csv"
-BNGO          = "historical_data/BNGO.csv"
+import time
 
 
 class BuyAndHold(bt.Strategy):
@@ -23,9 +16,31 @@ class BuyAndHold(bt.Strategy):
         return
 
     def __init__(self) -> None:
-        self.order         = None
-        self.starting_cash = 0
+        # Update TP to include making back the commission
+        # self.params.tp += commission
+
+        self.start_time = time.time()
+
+        # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
+        self.take_profit_order = None
+        
+        # Store all the Safety Orders so we can cancel the unfilled ones after TPing
+        self.safety_orders         = []
+
+        self.dca                   = None
+        self.is_first_safety_order = True
+        self.start_cash            = 0
+        self.start_value           = 0
+        self.time_period           = None
+        self.order      = None
         return
+
+    def get_elapsed_time(self, start_time: float) -> str:
+        end_time     = time.time()
+        elapsed_time = round(end_time - start_time)
+        minutes      = elapsed_time // 60
+        seconds      = elapsed_time % 60
+        return f"{minutes} minutes {seconds} seconds"
 
     def money_format(self, money: float) -> str:
         return "${:,.6f}".format(money)
@@ -39,12 +54,12 @@ class BuyAndHold(bt.Strategy):
         return
 
     def start(self) -> None:
-        self.starting_cash = self.broker.get_cash()
+        self.start_cash = self.broker.get_cash()
         return
 
     def nextstart(self) -> None:
         self.print_ohlc()
-        quantity_to_buy = int(self.starting_cash / self.data.high[0])
+        quantity_to_buy = int(self.start_cash / self.data.high[0])
         self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
         return
 
@@ -68,34 +83,27 @@ class BuyAndHold(bt.Strategy):
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
         return
 
-    def stop(self) -> None:
-        profit = round(self.broker.getvalue() - self.starting_cash, 2)
-        roi    = (self.broker.get_value() / self.starting_cash) - 1.0
-
-        print("\n^^^^ Finished Backtesting ^^^^^")
-        print(f"Total Profit:          {self.money_format(profit)}")
-        print('ROI:                   {:.2f}%'.format(100.0 * roi))
-        print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
+    def start(self) -> None:
+        self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
+        self.start_cash  = self.broker.get_cash()
+        self.start_value = self.broker.get_value()
         return
 
+    def stop(self) -> None:
+        time_elapsed = self.get_elapsed_time(self.start_time)
 
-if __name__ == '__main__':
-    os.system("cls")
+        total_value  = round(self.broker.get_value()+self.broker.get_cash(), 2)
+        profit       = round(total_value - self.start_cash, 2)
+        roi          = ((total_value / self.start_cash) - 1.0) * 100
+        roi          = '{:.2f}%'.format(roi)
 
-    cerebro = bt.Cerebro()
-    cerebro.broker.set_cash(STARTING_CASH)
+        print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
+        print()
+        print(f"Time Elapsed:           {time_elapsed}")
+        print(f"Time period:           {self.time_period}")
 
-    df = pd.read_csv(ORACLE)
-    df.drop(columns=["Adj Close"], inplace=True)
-    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
-    df.set_index('Date', inplace=True)
-
-    data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(2000, 9, 1),
-                               todate=datetime.datetime(2002, 12, 31),
-                               openinterest=-1)
-    cerebro.adddata(data)
-    cerebro.addstrategy(BuyAndHold)
-
-    cerebro.run()
-    cerebro.plot()        
+        print(f"Total Profit:          {self.money_format(profit)}")
+        print(f"ROI:                   {roi}")
+        print(f"Start Portfolio Value: {self.money_format(self.start_value)}")
+        print(f"Final Portfolio Value: {self.money_format(total_value)}")
+        return

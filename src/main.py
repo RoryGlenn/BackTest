@@ -66,7 +66,6 @@ if __name__ == '__main__':
     #           base_order_size=1,
     #           safety_order_size=1)
 
-
     dca = DCA(entry_price_usd=2364.33,
               target_profit_percent=1,
               safety_orders_max=7,
@@ -74,10 +73,10 @@ if __name__ == '__main__':
               safety_order_volume_scale=2.5,
               safety_order_step_scale=1.56,
               safety_order_price_deviation_percent=1.3,
-              base_order_size_usd=10,
-              safety_order_size_usd=10
-            #   base_order_size=1,
-            #   safety_order_size=1
+            #   base_order_size_usd=10,
+            #   safety_order_size_usd=10
+              base_order_size=1,
+              safety_order_size=1
               )
 
     dca.print_table()

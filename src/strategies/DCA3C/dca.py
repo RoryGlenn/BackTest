@@ -319,8 +319,6 @@ class DCA():
             required_price = self.weighted_average_price_levels[i] + (self.weighted_average_price_levels[i] * target_profit_decimal)
             required_price = round(required_price, DECIMAL_MAX)
             self.required_price_levels.append(required_price)
-        
-        # print(self.required_price_levels)
         return
 
     def __set_required_change_percentage_levels(self) -> None:
@@ -335,22 +333,12 @@ class DCA():
         """The more safety orders that are filled, the larger the profit will be.
         Each profit level is based on the previous profit level except for the base order."""
         
-        prev = 0
+        # prev = 0
 
-        if self.base_order_size_usd == 0:
-            prev = self.entry_price_usd * self.base_order_size
-        else:
-            prev = self.base_order_size_usd
-        
-
-        # for i in range(self.safety_orders_max):
-            # usd_value  = self.price_levels[i] * (self.safety_order_quantity_levels_usd[i] + prev)
-            # usd_profit = (self.target_profit_percent / 100) * usd_value
-            # usd_profit = round(usd_profit, DECIMAL_MAX)
-            # self.profit_levels.append(usd_profit)
-            # prev += self.safety_order_quantity_levels_usd[i]
-
-
+        # if self.base_order_size_usd == 0:
+        #     prev = self.entry_price_usd * self.base_order_size
+        # else:
+        #     prev = self.base_order_size_usd
 
         for i in range(self.safety_orders_max):
             so_entry_value = self.price_levels[i] * self.safety_order_quantity_levels[i]
@@ -358,9 +346,6 @@ class DCA():
             profit         = so_exit_value - so_entry_value
             profit         = round(profit, DECIMAL_MAX)
             self.profit_levels.append(profit)
-            print(profit)
-        
-        print(self.profit_levels)
         return
 
     def __set_base_order_roi_level(self) -> None:

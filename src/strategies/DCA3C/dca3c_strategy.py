@@ -13,7 +13,7 @@ STARTING_CASH = 1000000
 
 class DCA3C(bt.Strategy):
     params = (
-        ('dynamic_dca',                  False),
+        ('dynamic_dca',                  True),
         ('target_profit_percent',        1),
         ('trail_percent',                0.2),
         ('safety_orders_max',            7),
@@ -21,8 +21,8 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    2.5),
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
-        ('base_order_size_usd',          7750), # in terms of USD
-        ('safety_order_size_usd',        4000), # in terms of USD (with dynamic_dca, this setting is not used...)
+        ('base_order_size_usd',          7750),
+        ('safety_order_size_usd',        4000),
     )
 
     def log(self, txt: str, dt=None) -> None:
@@ -111,18 +111,18 @@ class DCA3C(bt.Strategy):
                 under = False
                 continue
             
-            if bottom_limit > self.dca.total_cost_levels[-1]:
+            if bottom_limit > self.dca.total_quantity_levels_usd[-1]:
                 safety_order_size += 1
                 under = True
-            elif upper_limit < self.dca.total_cost_levels[-1]:
+            elif upper_limit < self.dca.total_quantity_levels_usd[-1]:
                 safety_order_size -= 1
                 over = True
             else:
                 break
         
-        if self.dca.total_cost_levels[-1] >= total_cash:
+        if self.dca.total_quantity_levels_usd[-1] >= total_cash:
             # this should never happen!!!
-            print(self.dca.total_cost_levels)
+            print(self.dca.total_quantity_levels_usd)
         return
 
     def set_take_profit(self) -> None:
@@ -136,7 +136,7 @@ class DCA3C(bt.Strategy):
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
-            quantity_to_sell           = self.dca.total_quantity_levels_usd[0]
+            quantity_to_sell           = self.dca.total_quantity_levels[0]
             required_price             = self.dca.required_price_levels[0]
 
             self.take_profit_order = self.sell(price=required_price,
@@ -147,11 +147,11 @@ class DCA3C(bt.Strategy):
             self.dca.remove_top_safety_order()
             
             safety_order = self.buy(price=self.dca.price_levels[0],
-                                    size=self.dca.safety_order_quantity_levels_usd[0],
+                                    size=self.dca.safety_order_quantity_levels[0],
                                     exectype=bt.Order.Limit,
                                     oco=self.take_profit_order) # oco = One Cancel Others
         else:
-            quantity_to_sell = self.dca.total_quantity_levels_usd[0]
+            quantity_to_sell = self.dca.total_quantity_levels[0]
             required_price   = self.dca.required_price_levels[0]
             
             self.dca.remove_top_safety_order()
@@ -164,7 +164,7 @@ class DCA3C(bt.Strategy):
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
                 safety_order = self.buy(price=self.dca.price_levels[0],
-                                        size=self.dca.safety_order_quantity_levels_usd[0],
+                                        size=self.dca.safety_order_quantity_levels[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
         
@@ -199,7 +199,7 @@ class DCA3C(bt.Strategy):
                                         base_order_size//2 # this is temporary...
                                     )
 
-                    take_profit_price = entry_price + ( entry_price * (self.params.target_profit_percent/100) )
+                    take_profit_price = self.dca.base_order_required_price
 
                     # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
@@ -210,15 +210,14 @@ class DCA3C(bt.Strategy):
                     """instead of submitting the takeprofit and all safety orders at a single time,
                     submit one safety order and one take profit order until one of them is canceled!"""
                     safety_order = self.buy(price=self.dca.price_levels[0],
-                                                size=self.dca.safety_order_quantity_levels_usd[0],
+                                                size=self.dca.safety_order_quantity_levels[0],
                                                 exectype=bt.Order.Limit,
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
                     self.safety_orders.append(safety_order)
-                    # self.dca.print_df_table()
+                    self.dca.print_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
-                
                 self.safety_orders         = []
                 self.take_profit_order     = None
                 self.is_first_safety_order = True
@@ -292,7 +291,6 @@ class DCA3C(bt.Strategy):
 #     ROI:                   169.66%
 #     Final Portfolio Value: $2,696,571.520000
 
-
 #         params = (
 #             ('dynamic_dca',                  True),
 #             ('target_profit_percent',        1),
@@ -304,3 +302,29 @@ class DCA3C(bt.Strategy):
 #             ('base_order_size_usd',          7750), # in terms of USD
 #             ('safety_order_size_usd',        4000), # in terms of USD
 # """
+
+
+
+
+
+
+
+
+
+"""
+BNGO: WITH TRAILING 0.2
+    Time Elapsed:           0 minutes 2 seconds
+    Time period:           1248 days, 0:00:00
+    Total Profit:          $314,624.890000
+    ROI:                   31.46%
+    Final Portfolio Value: $1,314,624.890000
+
+
+BNGO: WITHOUT TRAILING
+    Time Elapsed:           0 minutes 6 seconds
+    Time period:           1248 days, 0:00:00
+    Total Profit:          $229,278.460000
+    ROI:                   22.93%
+    Final Portfolio Value: $1,229,278.460000
+
+"""

@@ -8,7 +8,17 @@ import backtrader as bt
 import time
 
 
+# StopTrailLimit
+# Time Elapsed:           0 minutes 31 seconds
+# Time period:           7302 days, 0:00:00
+# Total Profit:          $2,179,258.080000
+# ROI:                   217.93%
+# Start Portfolio Value: $1,000,000.000000
+# Final Portfolio Value: $3,179,258.080000
+
+
 class DCA3C(bt.Strategy):
+    # BNGO PARAMS
     params = (
         ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
@@ -18,9 +28,25 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    2.5),
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
-        ('base_order_size_usd',          7750),
+        ('base_order_size_usd',          7700),
         ('safety_order_size_usd',        4000),
     )
+
+    ##############################################
+    # ORACLE PARAMS
+    # params = (
+    #     ('dynamic_dca',                  False),
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            7),
+    #     ('safety_orders_active_max',     7),
+    #     ('safety_order_volume_scale',    2.5),
+    #     ('safety_order_step_scale',      1.56),
+    #     ('safety_order_price_deviation', 1.3),
+    #     ('base_order_size_usd',          7750),
+    #     ('safety_order_size_usd',        4000),
+    # )
+
 
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
@@ -150,8 +176,6 @@ class DCA3C(bt.Strategy):
                                     exectype=bt.Order.Limit,
                                     oco=self.take_profit_order) # oco = One Cancel Others
         else:
-            # self.dca.remove_top_safety_order() # ERROR AROUND THIS AREA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
             self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
                                                size=self.dca.total_quantity_levels[0],
                                                trailpercent=self.params.trail_percent,
@@ -236,7 +260,7 @@ class DCA3C(bt.Strategy):
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
                     self.safety_orders.append(safety_order)
-                    self.dca.print_table()
+                    # self.dca.print_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -257,8 +281,14 @@ class DCA3C(bt.Strategy):
             elif order.isbuy():
                 self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
-            print(self.broker.get_cash())
+            print()
+            print("Cash:", self.broker.get_cash())
+            print("Value", self.broker.get_value())
+            print()
             print(order)
+            print()
+            self.dca.print_table()
+            print()
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))

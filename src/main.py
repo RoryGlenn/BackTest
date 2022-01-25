@@ -49,10 +49,61 @@ TODO
 
 """
 
+def oracle() -> None:
+    cerebro = bt.Cerebro()
+    cerebro.broker.set_cash(STARTING_CASH)
+
+    df = pd.read_csv(ORACLE)
+    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
+    df.set_index('Date', inplace=True)
+
+    # ORACLE
+    data = bt.feeds.PandasData(dataname=df,
+                               fromdate=datetime.datetime(1995, 1, 3),
+                               todate=datetime.datetime(2014, 12, 31))
+
+    cerebro.adddata(data)
+    cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(BuyAndHold)
+    cerebro.addobserver(SLTPTracking)
+
+    cerebro.run()
+    cerebro.plot(style='candlestick', numfigs=1,
+                    barup='green', bardown='red',
+                    barupfill=True, bardownfill=True,
+                    volup='green', voldown='red', voltrans=100.0, voloverlay=False)
+    return
+
+
+def bngo() -> None:
+    cerebro = bt.Cerebro()
+    cerebro.broker.set_cash(STARTING_CASH)
+
+    df         = pd.read_csv(BNGO)
+    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
+    df.set_index('Date', inplace=True)
+
+    # BNGO
+    data = bt.feeds.PandasData(dataname=df,
+                               fromdate=datetime.datetime(2018, 8, 21),
+                               todate=datetime.datetime(2022, 1, 20))
+    cerebro.adddata(data)
+    cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(BuyAndHold)
+    cerebro.addobserver(SLTPTracking)
+
+    cerebro.run()
+    cerebro.plot(style='candlestick', numfigs=1,
+                    barup='green', bardown='red',
+                    barupfill=True, bardownfill=True,
+                    volup='green', voldown='red', voltrans=100.0, voloverlay=False)
+
+    return
+
 
 if __name__ == '__main__':
     os.system("cls")
- 
+
     # # ERROR
     # dca = DCA(entry_price_usd=25.860001,
     #           target_profit_percent=1,
@@ -73,33 +124,5 @@ if __name__ == '__main__':
     # print(dca.price_levels)
     # sys.exit()
     
-    cerebro = bt.Cerebro()
-    cerebro.broker.set_cash(STARTING_CASH)
 
-    # df         = pd.read_csv(BNGO)
-    df = pd.read_csv(ORACLE)
-    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
-    
-    df.set_index('Date', inplace=True)
-
-    # BNGO
-    # data = bt.feeds.PandasData(dataname=df,
-    #                            fromdate=datetime.datetime(2018, 8, 21),
-    #                            todate=datetime.datetime(2022, 1, 20))
-
-    # ORACLE
-    data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(1995, 1, 3),
-                               todate=datetime.datetime(2014, 12, 31)
-                            )
-
-    cerebro.adddata(data)
-    cerebro.addstrategy(DCA3C)
-    cerebro.addobserver(SLTPTracking)
-    # cerebro.addstrategy(BuyAndHold)
-
-    cerebro.run()
-    cerebro.plot(style='candlestick', numfigs=1,
-                    barup='green', bardown='red',
-                    barupfill=True, bardownfill=True,
-                    volup='green', voldown='red', voltrans=100.0, voloverlay=False)
+    oracle()

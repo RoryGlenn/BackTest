@@ -13,7 +13,7 @@ STARTING_CASH = 1000000
 
 class DCA3C(bt.Strategy):
     params = (
-        ('dynamic_dca',                  True),
+        ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
         ('trail_percent',                0.2),
         ('safety_orders_max',            7),
@@ -51,6 +51,7 @@ class DCA3C(bt.Strategy):
         self.dca                   = None
         self.is_first_safety_order = True
         self.start_cash            = 0
+        self.start_value           = 0
         self.time_period           = None
         return
 
@@ -94,15 +95,15 @@ class DCA3C(bt.Strategy):
         while True:
             bottom_limit = total_cash - (total_cash * dca_dynamic_range)
 
-            self.dca = DCA(entry_price,
-                            self.params.target_profit_percent,
-                            self.params.safety_orders_max,
-                            self.params.safety_orders_active_max,
-                            self.params.safety_order_volume_scale,
-                            self.params.safety_order_step_scale,
-                            self.params.safety_order_price_deviation,
-                            base_order_size,
-                            safety_order_size
+            self.dca = DCA( entry_price_usd=entry_price,
+                            target_profit_percent=self.params.target_profit_percent,
+                            safety_orders_max=self.params.safety_orders_max,
+                            safety_orders_active_max=self.params.safety_orders_active_max,
+                            safety_order_volume_scale=self.params.safety_order_volume_scale,
+                            safety_order_step_scale=self.params.safety_order_step_scale,
+                            safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
+                            base_order_size=base_order_size,
+                            safety_order_size=safety_order_size
                         )
 
             if over and under:
@@ -143,6 +144,7 @@ class DCA3C(bt.Strategy):
                                                size=quantity_to_sell,
                                                trailpercent=self.params.trail_percent,
                                                exectype=bt.Order.StopTrail)
+                                            # exectype=bt.Order.Limit)
             
             self.dca.remove_top_safety_order()
             
@@ -160,6 +162,7 @@ class DCA3C(bt.Strategy):
                                                size=quantity_to_sell,
                                                trailpercent=self.params.trail_percent,
                                                exectype=bt.Order.StopTrail)
+                                            # exectype=bt.Order.Limit)
 
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
@@ -206,6 +209,7 @@ class DCA3C(bt.Strategy):
                                                         size=base_order_size,
                                                         trailpercent=self.params.trail_percent,
                                                         exectype=bt.Order.StopTrail)
+                                                        # exectype=bt.Order.Limit)
 
                     """instead of submitting the takeprofit and all safety orders at a single time,
                     submit one safety order and one take profit order until one of them is canceled!"""
@@ -264,67 +268,24 @@ class DCA3C(bt.Strategy):
 
     def start(self) -> None:
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
-        self.start_cash  = self.broker.getvalue()
+        self.start_cash  = self.broker.get_cash()
+        self.start_value = self.broker.get_value()
         print(f"Starting Portfolio Value: {self.start_cash}")
         return
 
     def stop(self) -> None:
         time_elapsed = self.get_elapsed_time(self.start_time)
-        profit       = round(self.broker.getvalue() - self.start_cash, 2)
-        roi          = (self.broker.get_value() / self.start_cash) - 1.0
+        total_value  = self.broker.get_value() + self.broker.get_cash()
+        profit       = round(total_value - self.start_cash, 2)
+        roi          = (total_value / self.start_cash) - 1.0
 
-        print("\n^^^^ Finished Backtesting ^^^^^")
+        print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
         print(f"Time Elapsed:           {time_elapsed}")
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {self.money_format(profit)}")
         print('ROI:                   {:.2f}%'.format(100.0 * roi))
+        print(f"Start Portfolio Value: {self.money_format(round(self.start_value, 2))}")
         print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
         return
 
-
-
-# """
-#     ^^^^ Finished Backtesting ^^^^^
-#     Total time tested:     1248 days, 0:00:00
-#     Total Profit:          $1,696,571.520000
-#     ROI:                   169.66%
-#     Final Portfolio Value: $2,696,571.520000
-
-#         params = (
-#             ('dynamic_dca',                  True),
-#             ('target_profit_percent',        1),
-#             ('safety_orders_max',            7),
-#             ('safety_orders_active_max',     7),
-#             ('safety_order_volume_scale',    2.5),
-#             ('safety_order_step_scale',      1.56),
-#             ('safety_order_price_deviation', 1.3),
-#             ('base_order_size_usd',          7750), # in terms of USD
-#             ('safety_order_size_usd',        4000), # in terms of USD
-# """
-
-
-
-
-
-
-
-
-
-"""
-BNGO: WITH TRAILING 0.2
-    Time Elapsed:           0 minutes 2 seconds
-    Time period:           1248 days, 0:00:00
-    Total Profit:          $314,624.890000
-    ROI:                   31.46%
-    Final Portfolio Value: $1,314,624.890000
-
-
-BNGO: WITHOUT TRAILING
-    Time Elapsed:           0 minutes 6 seconds
-    Time period:           1248 days, 0:00:00
-    Total Profit:          $229,278.460000
-    ROI:                   22.93%
-    Final Portfolio Value: $1,229,278.460000
-
-"""

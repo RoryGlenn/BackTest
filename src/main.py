@@ -91,14 +91,3 @@ if __name__ == '__main__':
 
     cerebro.run()
     cerebro.plot()
-
-
-"""
-BNGO
-^^^^ Finished Backtesting ^^^^^
-Total time tested:     1248 days, 0:00:00
-Total Profit:          $1,696,571.520000
-ROI:                   169.66%
-Final Portfolio Value: $2,696,571.520000
-
-"""

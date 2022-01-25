@@ -8,11 +8,12 @@ from strategies.DCA3C.dca_dynamic import DCADynamic
 
 pd.options.display.float_format = '{:,.8f}'.format
 
-DECIMAL_MAX = 8
+
+# DECIMAL_MAX = 8
 
 
 class DCA():
-    def __init__(self, 
+    def __init__(self,
                 entry_price_usd:                      float, 
                 target_profit_percent:                float, 
                 safety_orders_max:                    int, 
@@ -423,6 +424,7 @@ class DCA():
         else:
             base_order_size = self.base_order_size
 
+        
         
 
         self.df = pd.DataFrame(

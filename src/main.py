@@ -51,8 +51,8 @@ TODO
 if __name__ == '__main__':
     os.system("cls")
 
-    STARTING_CASH = 1000
-    base_order_size = STARTING_CASH*0.0081
+    STARTING_CASH     = 1000
+    base_order_size   = STARTING_CASH*0.0081
     safety_order_size = base_order_size/2
 
     # ADA
@@ -74,10 +74,10 @@ if __name__ == '__main__':
               safety_order_volume_scale=2.5,
               safety_order_step_scale=1.56,
               safety_order_price_deviation_percent=1.3,
-            #   base_order_size_usd=10.166619,
-            #   safety_order_size_usd=10.034437
-              base_order_size=1,
-              safety_order_size=1
+              base_order_size_usd=10,
+              safety_order_size_usd=10
+            #   base_order_size=1,
+            #   safety_order_size=1
               )
 
     dca.print_table()

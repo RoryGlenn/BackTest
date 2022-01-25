@@ -1,6 +1,5 @@
 """dca.py - DCA is a dollar cost averaging technique. 
 This bot uses DCA in order lower the average buy price for a purchased coin."""
-import math
 
 import sys
 import pandas as pd
@@ -11,12 +10,19 @@ DECIMAL_MAX = 8
 
 
 class DCA():
-    def __init__(self, entry_price_usd: float, target_profit_percent: float, 
-                    safety_orders_max: int, safety_orders_active_max: int, 
-                    safety_order_volume_scale: float, safety_order_step_scale: float, 
-                    safety_order_price_deviation_percent: float, base_order_size_usd: float=0.0,
-                    safety_order_size_usd: float=0.0, base_order_size: float=0.0,
-                    safety_order_size: float=0.0, max_cash: bool=False) -> None:
+    def __init__(self, 
+                entry_price_usd: float, 
+                target_profit_percent: float, 
+                safety_orders_max: int, 
+                safety_orders_active_max: int, 
+                safety_order_volume_scale: float, 
+                safety_order_step_scale: float, 
+                safety_order_price_deviation_percent: float, 
+                base_order_size_usd: float=0.0,
+                safety_order_size_usd: float=0.0, 
+                base_order_size: float=0.0,
+                safety_order_size: float=0.0,
+                max_cash: bool=False) -> None:
 
         self.deviation_percent_levels:          list          = [ ]
         self.price_levels:                      list          = [ ]
@@ -27,12 +33,10 @@ class DCA():
         self.total_quantity_levels:             list          = [ ]
         self.total_quantity_levels_usd:         list          = [ ]
         
-        self.weighted_average_price_levels:              list          = [ ]
+        self.weighted_average_price_levels:     list          = [ ]
         self.required_price_levels:             list          = [ ]
         self.required_change_percent_levels:    list          = [ ]
         self.profit_levels:                     list          = [ ]
-        self.cost_levels:                       list          = [ ]
-        self.total_cost_levels:                 list          = [ ]
         self.base_order_roi:                    float         = 0.0
         self.safety_order_roi_levels:           list          = [ ]
         self.df:                                pd.DataFrame  = None
@@ -69,7 +73,7 @@ class DCA():
         base order size, safety order size and values from the config file which is set by the user.
 
         """
-        self.__set_base_order_level()
+        self.__set_base_order_variables()
         self.__set_deviation_percent_levels()
         self.__set_price_levels()
 
@@ -94,14 +98,12 @@ class DCA():
         self.__set_required_price_levels()
         self.__set_required_change_percentage_levels()
         self.__set_profit_levels()
-        self.__set_cost_levels()
-        self.__set_total_cost_levels()
         self.__set_base_order_roi_level()
         self.__set_safety_order_roi_levels()
         self.__set_df_table()
         return
 
-    def __set_base_order_level(self) -> None:
+    def __set_base_order_variables(self) -> None:
         self.base_order_required_price = self.entry_price_usd + ( self.entry_price_usd * (self.target_profit_percent/100) )
 
         if self.base_order_size > 0 and self.safety_order_size > 0 and \
@@ -234,7 +236,6 @@ class DCA():
                 self.__set_quantity_usd_levels_dependent()
 
         """
-
         for i in range(self.safety_orders_max):
             usd_quantity = self.price_levels[i] * self.safety_order_quantity_levels[i]
             usd_quantity = round(usd_quantity, DECIMAL_MAX)
@@ -259,7 +260,7 @@ class DCA():
         """Sets the total quantity bought at each level."""
         prev = 0
 
-        if self.base_order_size_usd == 0:
+        if self.base_order_size == 0:
             base_order_size = self.base_order_cost / self.entry_price_usd
             prev = base_order_size
         else:
@@ -296,7 +297,7 @@ class DCA():
         if self.base_order_size_usd == 0:
             base_order_qty = self.base_order_cost / self.entry_price_usd
         else:
-            base_order_qty = self.entry_price_usd * self.base_order_size_usd
+            base_order_qty = self.base_order_size_usd / self.entry_price_usd
         
         for i in range(self.safety_orders_max):
             numerator = self.entry_price_usd * base_order_qty
@@ -304,7 +305,6 @@ class DCA():
             for j in range(i+1):
                 numerator += self.price_levels[j] * self.safety_order_quantity_levels[j]
                 
-            # numerator        += base_order_qty
             weighted_average = numerator / self.total_quantity_levels[i]
             weighted_average = round(weighted_average, DECIMAL_MAX)
             self.weighted_average_price_levels.append(weighted_average)
@@ -319,6 +319,8 @@ class DCA():
             required_price = self.weighted_average_price_levels[i] + (self.weighted_average_price_levels[i] * target_profit_decimal)
             required_price = round(required_price, DECIMAL_MAX)
             self.required_price_levels.append(required_price)
+        
+        # print(self.required_price_levels)
         return
 
     def __set_required_change_percentage_levels(self) -> None:
@@ -333,35 +335,32 @@ class DCA():
         """The more safety orders that are filled, the larger the profit will be.
         Each profit level is based on the previous profit level except for the base order."""
         
-        prev = self.base_order_size_usd
+        prev = 0
+
+        if self.base_order_size_usd == 0:
+            prev = self.entry_price_usd * self.base_order_size
+        else:
+            prev = self.base_order_size_usd
         
-        for i in range(self.safety_orders_max):
-            usd_value  = self.price_levels[i] * (self.safety_order_quantity_levels_usd[i] + prev)
-            usd_profit = (self.target_profit_percent / 100) * usd_value
-            usd_profit = round(usd_profit, DECIMAL_MAX)
-            self.profit_levels.append(usd_profit)
-            prev += self.safety_order_quantity_levels_usd[i]
-        return
-    
-    def __set_cost_levels(self) -> None:
-        """Sets the cost (USD) spent for each safety order row."""
+
+        # for i in range(self.safety_orders_max):
+            # usd_value  = self.price_levels[i] * (self.safety_order_quantity_levels_usd[i] + prev)
+            # usd_profit = (self.target_profit_percent / 100) * usd_value
+            # usd_profit = round(usd_profit, DECIMAL_MAX)
+            # self.profit_levels.append(usd_profit)
+            # prev += self.safety_order_quantity_levels_usd[i]
+
+
 
         for i in range(self.safety_orders_max):
-            cost = self.price_levels[i] * self.safety_order_quantity_levels_usd[i]
-            cost = round(cost, DECIMAL_MAX)
-            self.cost_levels.append(cost)
-        return
-    
-    def __set_total_cost_levels(self) -> None:
-        """Sets the total cost (USD) for each safety order row.
-        This includes the prev order costs. """
-
-        total_cost = self.entry_price_usd * self.base_order_size_usd
+            so_entry_value = self.price_levels[i] * self.safety_order_quantity_levels[i]
+            so_exit_value  = self.required_price_levels[i] * self.safety_order_quantity_levels[i]
+            profit         = so_exit_value - so_entry_value
+            profit         = round(profit, DECIMAL_MAX)
+            self.profit_levels.append(profit)
+            print(profit)
         
-        for i in range(self.safety_orders_max):
-            total_cost += self.price_levels[i] * self.safety_order_quantity_levels_usd[i]
-            total_cost = round(total_cost, DECIMAL_MAX)
-            self.total_cost_levels.append(total_cost)
+        print(self.profit_levels)
         return
 
     def __set_base_order_roi_level(self) -> None:
@@ -415,31 +414,35 @@ class DCA():
         return
 
     def __set_df_table(self) -> None:
-        safety_order_numbers      = [i for i in range(self.safety_orders_max+1)]
-        
+        safety_order_numbers = [i for i in range(self.safety_orders_max+1)]
+        base_order_size      = 0
+
+        if self.base_order_size == 0:
+            base_order_size = self.base_order_size_usd / self.entry_price_usd
+        else:
+            base_order_size = self.base_order_size
+
         self.df = pd.DataFrame(
             {
                 'safety_order_number':     safety_order_numbers,
                 
-                'deviation_percent':       [0]                          + self.deviation_percent_levels,
+                'deviation_percent':       [0]                               + self.deviation_percent_levels,
                 
-                'quantity':                [self.base_order_size]       + self.safety_order_quantity_levels,
-                'total_quantity':          [self.base_order_size]       + self.total_quantity_levels,
+                'quantity':                [base_order_size]                 + self.safety_order_quantity_levels,
+                'total_quantity':          [base_order_size]                 + self.total_quantity_levels,
 
                 'quantity_usd':            [self.base_order_cost]            + self.safety_order_quantity_levels_usd,
                 'total_quantity_usd':      [self.base_order_cost]            + self.total_quantity_levels_usd,
 
-                'price':                   [self.entry_price_usd]       + self.price_levels,
-                'weighted_average_price':  [self.entry_price_usd]       + self.weighted_average_price_levels,
+                'price':                   [self.entry_price_usd]            + self.price_levels,
+                'weighted_average_price':  [self.entry_price_usd]            + self.weighted_average_price_levels,
                 'required_price':          [self.base_order_required_price]  + self.required_price_levels,
 
-                'required_change_percent': [self.target_profit_percent] + self.required_change_percent_levels,
+                'required_change_percent': [self.target_profit_percent]      + self.required_change_percent_levels,
                 
                 'profit':                  [self.base_order_profit]          + self.profit_levels,
-                'profit_roi':              [self.base_order_roi]        + self.safety_order_roi_levels,
+                'profit_roi':              [self.base_order_roi]             + self.safety_order_roi_levels
 
-                'cost':                    [self.base_order_cost]            + self.cost_levels,
-                'total_cost':              [self.base_order_cost]            + self.total_cost_levels,
             })
             
         return
@@ -457,6 +460,4 @@ class DCA():
         self.required_price_levels.pop(0)
         self.required_change_percent_levels.pop(0)
         self.profit_levels.pop(0)
-        self.cost_levels.pop(0)
-        self.total_cost_levels.pop(0)
         return

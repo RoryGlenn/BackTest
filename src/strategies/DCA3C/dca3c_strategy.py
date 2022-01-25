@@ -275,17 +275,21 @@ class DCA3C(bt.Strategy):
 
     def stop(self) -> None:
         time_elapsed = self.get_elapsed_time(self.start_time)
-        total_value  = self.broker.get_value() + self.broker.get_cash()
+
+        total_value  = round(self.broker.get_value()+self.broker.get_cash(), 2)
+        value        = self.broker.get_value()
         profit       = round(total_value - self.start_cash, 2)
-        roi          = (total_value / self.start_cash) - 1.0
+        roi          = ((total_value / self.start_cash) - 1.0) * 100
+        roi          = '{:.2f}%'.format(roi)
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
         print(f"Time Elapsed:           {time_elapsed}")
         print(f"Time period:           {self.time_period}")
+
         print(f"Total Profit:          {self.money_format(profit)}")
-        print('ROI:                   {:.2f}%'.format(100.0 * roi))
-        print(f"Start Portfolio Value: {self.money_format(round(self.start_value, 2))}")
-        print(f"Final Portfolio Value: {self.money_format(round(self.broker.getvalue(), 2))}")
+        print(f"ROI:                   {roi}")
+        print(f"Start Portfolio Value: {self.money_format(self.start_value)}")
+        print(f"Final Portfolio Value: {self.money_format(total_value)}")
         return
 

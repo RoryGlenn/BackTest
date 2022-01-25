@@ -9,9 +9,7 @@
             "type": "python",
             "request": "launch",
             "program": "src/main.py",
-            "justMyCode": true,
-            "terminal.integrated": false
-
+            "justMyCode": true
         }
     ]
 }

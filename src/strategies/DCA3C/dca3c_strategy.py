@@ -6,17 +6,13 @@ from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
 import time
-import datetime
-
-
-STARTING_CASH = 1000000
 
 
 class DCA3C(bt.Strategy):
     params = (
         ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
-        ('trail_percent',                0.2),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
@@ -40,6 +36,9 @@ class DCA3C(bt.Strategy):
     def __init__(self) -> None:
         # Update TP to include making back the commission
         # self.params.tp += commission
+
+        self.take_profit_price = 0.0
+        self.stop_limit_price  = 0.0
 
         self.start_time = time.time()
 
@@ -76,12 +75,6 @@ class DCA3C(bt.Strategy):
         low   = self.money_format(self.data.low[0])
         close = self.money_format(self.data.close[0])
         print(f"{date} Open: {open}, High: {high}, Low: {low}, Close: {close}")
-        return
-
-    def print_orders(self) -> None:
-        print()
-        for order in self.safety_orders:
-            print(f"Price: {order.price} Quantity: {order.size}, Status: {order.status}, Alive: {order.alive()}")  
         return
 
     def dynamic_dca(self, entry_price: float, base_order_size: float):
@@ -135,38 +128,49 @@ class DCA3C(bt.Strategy):
             return
 
         print("\nCANCELED TAKE PROFIT SELL ORDER")
-        print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}")
+        print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}\n")
 
         safety_order = None
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
-            quantity_to_sell           = self.dca.total_quantity_levels[0]
-            required_price             = self.dca.required_price_levels[0]
 
-            self.take_profit_order = self.sell(price=required_price,
-                                               size=quantity_to_sell,
+            self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
+                                               size=self.dca.total_quantity_levels[0],
                                                trailpercent=self.params.trail_percent,
-                                               exectype=bt.Order.StopTrail)
-                                            # exectype=bt.Order.Limit)
+                                                plimit=self.dca.required_price_levels[0],
+                                                exectype=bt.Order.StopTrailLimit)
+                                                # exectype=bt.Order.StopTrail)
+                                                # exectype=bt.Order.Limit)
             
             self.dca.remove_top_safety_order()
-            
+
             safety_order = self.buy(price=self.dca.price_levels[0],
                                     size=self.dca.safety_order_quantity_levels[0],
                                     exectype=bt.Order.Limit,
                                     oco=self.take_profit_order) # oco = One Cancel Others
         else:
-            quantity_to_sell = self.dca.total_quantity_levels[0]
-            required_price   = self.dca.required_price_levels[0]
-            
+            # self.dca.remove_top_safety_order() # ERROR AROUND THIS AREA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+            self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
+                                               size=self.dca.total_quantity_levels[0],
+                                               trailpercent=self.params.trail_percent,
+                                               plimit=self.dca.required_price_levels[0],
+                                               exectype=bt.Order.StopTrailLimit)
+                                                # exectype=bt.Order.StopTrail)
+                                                # exectype=bt.Order.Limit)
+
+            # print("before pop: ")
+            # print("take profit: quantity_to_sell: ", self.dca.total_quantity_levels[0])
+            # print("take profit: required_price: ",   self.dca.required_price_levels[0])
+            # print()
+
             self.dca.remove_top_safety_order()
 
-            self.take_profit_order = self.sell(price=required_price,
-                                               size=quantity_to_sell,
-                                               trailpercent=self.params.trail_percent,
-                                               exectype=bt.Order.StopTrail)
-                                            # exectype=bt.Order.Limit)
+            # print("after pop: ")
+            # print("take profit: quantity_to_sell: ", self.dca.total_quantity_levels[0])
+            # print("take profit: required_price: ",   self.dca.required_price_levels[0])
+            # print()
 
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
@@ -174,7 +178,10 @@ class DCA3C(bt.Strategy):
                                         size=self.dca.safety_order_quantity_levels[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
-        
+            
+                # print("Safety order: price: ",            self.dca.price_levels[0])
+                # print("Safety order: quantity_to_sell: ", self.dca.safety_order_quantity_levels[0])                
+
         self.safety_orders.append(safety_order)
         
         print("\nNEW TAKE PROFIT ORDER")
@@ -187,32 +194,38 @@ class DCA3C(bt.Strategy):
             return
         elif order.status in [order.Completed]:
             if order.isbuy():
-                self.log('BUY EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                self.log('BUY EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 if order.exectype == 0:
-                    entry_price       = order.executed.price
-                    base_order_size   = order.executed.size
+                    entry_price     = order.executed.price
+                    base_order_size = order.executed.size
 
-                    if self.params.dynamic_dca:
-                        self.dynamic_dca(entry_price, base_order_size)
-                    else:
-                        self.dca = DCA( entry_price_usd=entry_price,
-                                        target_profit_percent=self.params.target_profit_percent,
-                                        safety_orders_max=self.params.safety_orders_max,
-                                        safety_orders_active_max=self.params.safety_orders_active_max,
-                                        safety_order_volume_scale=self.params.safety_order_volume_scale,
-                                        safety_order_step_scale=self.params.safety_order_step_scale,
-                                        safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
-                                        base_order_size=base_order_size,
-                                        safety_order_size=base_order_size//2
-                                    )
+                    # if self.params.dynamic_dca:
+                    #     self.dynamic_dca(entry_price, base_order_size)
+                    # else:
 
+                    self.dca = DCA( entry_price_usd=entry_price,
+                                    target_profit_percent=self.params.target_profit_percent,
+                                    safety_orders_max=self.params.safety_orders_max,
+                                    safety_orders_active_max=self.params.safety_orders_active_max,
+                                    safety_order_volume_scale=self.params.safety_order_volume_scale,
+                                    safety_order_step_scale=self.params.safety_order_step_scale,
+                                    safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
+                                    base_order_size=base_order_size,
+                                    safety_order_size=base_order_size//2
+                                )
+                        
                     take_profit_price = self.dca.base_order_required_price
 
-                    # BASE ORDER SELL (if this sell is filled, cancel all the other safety orders)
+                    print("entry_price:",entry_price)
+                    print("take_profit_price:",take_profit_price)
+
+                    # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
                                                         size=base_order_size,
                                                         trailpercent=self.params.trail_percent,
-                                                        exectype=bt.Order.StopTrail)
+                                                        plimit=take_profit_price,
+                                                        exectype=bt.Order.StopTrailLimit)
+                                                        # exectype=bt.Order.StopTrail)
                                                         # exectype=bt.Order.Limit)
 
                     """instead of submitting the takeprofit and all safety orders at a single time,
@@ -225,19 +238,33 @@ class DCA3C(bt.Strategy):
                     self.safety_orders.append(safety_order)
                     self.dca.print_table()
             elif order.issell():
-                self.log('SELL EXECUTED, Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                
+                if self.position.size != 0:
+                    print()
+                    print(self.position)
+                    print()
+
                 self.safety_orders         = []
                 self.take_profit_order     = None
                 self.is_first_safety_order = True
+                self.take_profit_price     = 0.0
+                self.stop_limit_price      = 0.0
         elif order.status in [order.Canceled]:
-            self.log(f'ORDER CANCELED: Size: {order.size}')
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
             if order.issell():
                 self.set_take_profit()
+            elif order.isbuy():
+                self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
+            print(self.broker.get_cash())
+            print(order)
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
+        else:
+            self.log("ORDER UNKNOWN: SOMETHNG WENT WRONG!")
+            print(order)
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
@@ -247,6 +274,12 @@ class DCA3C(bt.Strategy):
             if trade.pnl <= 0 or trade.pnlcomm <= 0:
                 print(trade.pnl, trade.pnlcomm)
                 print(trade)
+        return
+
+    def notify_cashvalue(self, cash, value) -> None:
+        return
+
+    def notify_fund(self, cash, value, fundvalue, shares) -> None:
         return
 
     def start_new_deal(self) -> None:

@@ -10,6 +10,7 @@
 from strategies.DCA3C.dca3c_strategy import DCA3C
 from strategies.DCA3C.dca3c_strategy import DCA
 from strategies.DCA3C.buy_and_hold import BuyAndHold
+from observers.stop_take import SLTPTracking
 
 import backtrader as bt
 import pandas     as pd
@@ -94,7 +95,11 @@ if __name__ == '__main__':
 
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
+    cerebro.addobserver(SLTPTracking)
     # cerebro.addstrategy(BuyAndHold)
 
     cerebro.run()
-    cerebro.plot()
+    cerebro.plot(style='candlestick', numfigs=1,
+                    barup='green', bardown='red',
+                    barupfill=True, bardownfill=True,
+                    volup='green', voldown='red', voltrans=100.0, voloverlay=False)

@@ -27,7 +27,7 @@ class DCA():
         self.total_quantity_levels:             list          = [ ]
         self.total_quantity_levels_usd:         list          = [ ]
         
-        self.average_price_levels:              list          = [ ]
+        self.weighted_average_price_levels:              list          = [ ]
         self.required_price_levels:             list          = [ ]
         self.required_change_percent_levels:    list          = [ ]
         self.profit_levels:                     list          = [ ]
@@ -265,14 +265,11 @@ class DCA():
         else:
             prev = self.base_order_size
         
-        # base order quantity
-        self.total_quantity_levels.append(prev)
-        
         for i in range(self.safety_orders_max):
             sum = prev + self.safety_order_quantity_levels[i]
             sum = round(sum, DECIMAL_MAX)
             self.total_quantity_levels.append(sum)
-            prev = sum
+            prev = sum 
         return
 
     def __set_total_quantity_usd_levels(self) -> None:
@@ -284,30 +281,33 @@ class DCA():
         else:
             prev = self.base_order_size_usd
         
-        self.total_quantity_levels_usd.append(prev)
-
-
         for i in range(self.safety_orders_max):
             sum = prev + self.safety_order_quantity_levels_usd[i]
             sum = round(sum, DECIMAL_MAX)
             self.total_quantity_levels_usd.append(sum)
-            # print(self.total_quantity_levels_usd)
             prev = sum
         return
     
     def __set_weighted_average_price_levels(self) -> None:
         """Sets the weighted average price level for each safety order number."""
-        base_order_qty = self.entry_price_usd * self.base_order_size_usd
+        
+        base_order_qty = 0
+        
+        if self.base_order_size_usd == 0:
+            base_order_qty = self.base_order_cost / self.entry_price_usd
+        else:
+            base_order_qty = self.entry_price_usd * self.base_order_size_usd
         
         for i in range(self.safety_orders_max):
-            numerator = 0
+            numerator = self.entry_price_usd * base_order_qty
+
             for j in range(i+1):
-                numerator += self.price_levels[j] * self.safety_order_quantity_levels_usd[j]
+                numerator += self.price_levels[j] * self.safety_order_quantity_levels[j]
                 
-            numerator += base_order_qty
-            weighted_average = numerator / self.total_quantity_levels_usd[i]
+            # numerator        += base_order_qty
+            weighted_average = numerator / self.total_quantity_levels[i]
             weighted_average = round(weighted_average, DECIMAL_MAX)
-            self.average_price_levels.append(weighted_average)
+            self.weighted_average_price_levels.append(weighted_average)
         return    
     
     def __set_required_price_levels(self) -> None:
@@ -316,7 +316,7 @@ class DCA():
 
         # safety orders
         for i in range(self.safety_orders_max):
-            required_price = self.average_price_levels[i] + (self.average_price_levels[i] * target_profit_decimal)
+            required_price = self.weighted_average_price_levels[i] + (self.weighted_average_price_levels[i] * target_profit_decimal)
             required_price = round(required_price, DECIMAL_MAX)
             self.required_price_levels.append(required_price)
         return
@@ -430,7 +430,7 @@ class DCA():
                 'total_quantity_usd':      [self.base_order_cost]            + self.total_quantity_levels_usd,
 
                 'price':                   [self.entry_price_usd]       + self.price_levels,
-                'weighted_average_price':  [self.entry_price_usd]       + self.average_price_levels,
+                'weighted_average_price':  [self.entry_price_usd]       + self.weighted_average_price_levels,
                 'required_price':          [self.base_order_required_price]  + self.required_price_levels,
 
                 'required_change_percent': [self.target_profit_percent] + self.required_change_percent_levels,
@@ -453,7 +453,7 @@ class DCA():
         self.safety_order_quantity_levels_usd.pop(0)
         self.total_quantity_levels_usd.pop(0)
         self.price_levels.pop(0)
-        self.average_price_levels.pop(0)
+        self.weighted_average_price_levels.pop(0)
         self.required_price_levels.pop(0)
         self.required_change_percent_levels.pop(0)
         self.profit_levels.pop(0)

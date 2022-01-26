@@ -15,7 +15,7 @@ from strategies.DCA3C.buy_and_hold   import BuyAndHold
 from observers.stop_take             import SLTPTracking
 
 from backtrader_plotting         import Bokeh
-from backtrader_plotting.schemes import Tradimo
+from backtrader_plotting.schemes import *
 
 import backtrader as bt
 import pandas     as pd
@@ -120,13 +120,13 @@ def btc_2018() -> None:
                                 openinterest=None,
                                 fromdate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=1),
                                 # todate=datetime.datetime(year=2018, month=12, day=31, hour=23, minute=59)
-                                todate=datetime.datetime(year=2018, month=2, day=2, hour=2, minute=1)
+                                todate=datetime.datetime(year=2018, month=1, day=2, hour=0, minute=1)
                             )
 
-    cerebro.adddata(data)
+    cerebro.adddata(data, name='BTC-USD') # adding a name while using bokeh will avoid plotting error
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)
-    # cerebro.addobserver(SLTPTracking)
+    cerebro.addobserver(SLTPTracking)
     cerebro.run()
 
     print(f"Test time elapsed (is this number different?): {get_elapsed_time(testtime)}")
@@ -136,7 +136,7 @@ def btc_2018() -> None:
     #                 barupfill=False, bardownfill=False,
     #                 volup='green', voldown='red', voltrans=10.0, voloverlay=False)
 
-    b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
+    b = Bokeh(style='bar', plot_mode='single', scheme=Blackly())
     cerebro.plot(b)
     return
 

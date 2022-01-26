@@ -1,0 +1,16 @@
+1. Create an optimizer for the DCA settings.
+    Optimizer will iterate through a large list of settings.
+    Will try different combinations for.
+
+2. Implement trailing percent       DONE
+
+2. Create a dynamic or static DCA: 
+    a. dynamic DCA will be a percentage given for the base order and the safety order.
+    b. use_all_cash boolean: Will use all available money on the placement of the final safety order in order to maximize profit.
+    
+    CHECK THIS WORKS BY ENTERING IN THE BASE ORDER PRICE AND SAFETY ORDER PRICE WITH THE REGULUAR DCA.
+    DOUBLE CHECK BOTH OF THESE BY ENTERING IT INTO 3COMMAS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+3. PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
+4. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?

@@ -12,7 +12,6 @@ import time
 class DCA3C(bt.Strategy):
     # BNGO PARAMS
     params = (
-        ('dynamic_dca',                  False),
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            7),
@@ -94,52 +93,6 @@ class DCA3C(bt.Strategy):
         print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
         return
 
-    def dynamic_dca(self, entry_price: float, base_order_size: float):
-        safety_order_size = int(base_order_size/2) # this is temporary
-
-        # if the last safety order uses all of our cash within a 1% deviation
-        dca_dynamic_range = 0.01
-        
-        total_cash   = self.broker.get_value()
-        upper_limit  = total_cash
-        over         = False
-        under        = False
-
-        ### DYNAMIC DCA ##
-        while True:
-            bottom_limit = total_cash - (total_cash * dca_dynamic_range)
-
-            self.dca = DCA( entry_price_usd=entry_price,
-                            target_profit_percent=self.params.target_profit_percent,
-                            safety_orders_max=self.params.safety_orders_max,
-                            safety_orders_active_max=self.params.safety_orders_active_max,
-                            safety_order_volume_scale=self.params.safety_order_volume_scale,
-                            safety_order_step_scale=self.params.safety_order_step_scale,
-                            safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
-                            base_order_size=base_order_size,
-                            safety_order_size=safety_order_size
-                        )
-
-            if over and under:
-                dca_dynamic_range += 0.01
-                over  = False
-                under = False
-                continue
-            
-            if bottom_limit > self.dca.total_quantity_levels_usd[-1]:
-                safety_order_size += 1
-                under = True
-            elif upper_limit < self.dca.total_quantity_levels_usd[-1]:
-                safety_order_size -= 1
-                over = True
-            else:
-                break
-        
-        if self.dca.total_quantity_levels_usd[-1] >= total_cash:
-            # this should never happen!!!
-            print(self.dca.total_quantity_levels_usd)
-        return
-
     def set_take_profit(self) -> None:
         if self.take_profit_order is None:
             return
@@ -219,9 +172,6 @@ class DCA3C(bt.Strategy):
                         
                     take_profit_price = self.dca.base_order_required_price
 
-                    # print("entry_price:",entry_price)
-                    # print("take_profit_price:",take_profit_price)
-
                     # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
                                                         size=base_order_size,
@@ -293,11 +243,11 @@ class DCA3C(bt.Strategy):
                 print()
         return
 
-    def notify_cashvalue(self, cash, value) -> None:
-        return
+    # def notify_cashvalue(self, cash, value) -> None:
+    #     return
 
-    def notify_fund(self, cash, value, fundvalue, shares) -> None:
-        return
+    # def notify_fund(self, cash, value, fundvalue, shares) -> None:
+    #     return
 
     def start_new_deal(self) -> None:
         print("\n*** NEW DEAL ***")
@@ -323,17 +273,11 @@ class DCA3C(bt.Strategy):
         return
 
     def start(self) -> None:
-        print("\n\n^^^^ STARTING THE BACKTEST ^^^^^")
+        print("\n^^^^ STARTING THE BACKTEST ^^^^^")
 
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
-
-        # print(self.datas[0].p.todate)
-        # print(self.datas[0].p.fromdate)
-
-        # print(type(self.datas[0].p.todate))
-        # print(type(self.datas[0].p.fromdate))
         return
 
     def stop(self) -> None:

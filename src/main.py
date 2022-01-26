@@ -14,8 +14,9 @@ from strategies.DCA3C.dca_dynamic    import DCADynamic
 from strategies.DCA3C.buy_and_hold   import BuyAndHold
 from observers.stop_take             import SLTPTracking
 
-from backtrader_plotting         import Bokeh
-from backtrader_plotting.schemes import *
+from backtrader_plotting         import Bokeh, OptBrowser
+from backtrader_plotting.schemes import Blackly, Tradimo
+
 
 import backtrader as bt
 import pandas     as pd
@@ -56,8 +57,6 @@ def oracle() -> None:
 
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
-    # cerebro.addstrategy(BuyAndHold)
-    cerebro.addobserver(SLTPTracking)
 
     cerebro.run()
     cerebro.plot(style='candlestick', numfigs=1,
@@ -79,23 +78,19 @@ def bngo() -> None:
     data = bt.feeds.PandasData(dataname=df,
                                fromdate=datetime.datetime(2018, 8, 21),
                                todate=datetime.datetime(2022, 1, 20))
-    cerebro.adddata(data)
+    cerebro.adddata(data, name="BNGO")
     cerebro.addstrategy(DCA3C)
-    # cerebro.addstrategy(BuyAndHold)
-    cerebro.addobserver(SLTPTracking)
-
     cerebro.run()
-    cerebro.plot(style='candlestick', numfigs=1,
-                    barup='green', bardown='red',
-                    barupfill=False, bardownfill=False,
-                    volup='green', voldown='red', voltrans=10.0, voloverlay=False)
+
+    b = Bokeh(style='bar', filename='backtest_results/bngo_backtest_result.html', output_mode='show', scheme=Blackly())
+    cerebro.plot(b)
     return
 
 
 def btc_2018() -> None:
-    testtime = time.time()
+    start_time = time.time()
     
-    cerebro = bt.Cerebro(stdstats=False)
+    cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)
 
     df = pd.read_csv(BTC_USD_2018, 
@@ -126,17 +121,11 @@ def btc_2018() -> None:
     cerebro.adddata(data, name='BTC-USD') # adding a name while using bokeh will avoid plotting error
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)
-    cerebro.addobserver(SLTPTracking)
     cerebro.run()
 
-    print(f"Test time elapsed (is this number different?): {get_elapsed_time(testtime)}")
+    print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
-    # cerebro.plot(style='candlestick', numfigs=1,
-    #                 barup='green', bardown='red',
-    #                 barupfill=False, bardownfill=False,
-    #                 volup='green', voldown='red', voltrans=10.0, voloverlay=False)
-
-    b = Bokeh(style='bar', plot_mode='single', scheme=Blackly())
+    b = Bokeh(style='bar', filename='backtest_results/btc_2018_backtest_result.html', output_mode='show', scheme=Blackly())
     cerebro.plot(b)
     return
 

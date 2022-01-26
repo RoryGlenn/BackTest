@@ -10,10 +10,25 @@ import time
 
 
 class DCA3C(bt.Strategy):
+
+    # # BTC PARAMS
+    # params = (
+    #     ('dynamic_dca',                  False),
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            7),
+    #     ('safety_orders_active_max',     7),
+    #     ('safety_order_volume_scale',    2.5),
+    #     ('safety_order_step_scale',      1.56),
+    #     ('safety_order_price_deviation', 1.3),
+    #     ('base_order_size_usd',          7750),
+    #     ('safety_order_size_usd',        4000),
+    # )
+
     # BNGO PARAMS
     params = (
-        ('target_profit_percent',        1),
-        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('target_profit_percent',        2),
+        ('trail_percent',                0.01), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
@@ -90,7 +105,7 @@ class DCA3C(bt.Strategy):
         high    = self.money_format(self.data.high[0])
         low     = self.money_format(self.data.low[0])
         close   = self.money_format(self.data.close[0])
-        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
+        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}\n")
         return
 
     def set_take_profit(self) -> None:
@@ -281,7 +296,7 @@ class DCA3C(bt.Strategy):
         return
 
     def stop(self) -> None:
-        time_elapsed = self.get_elapsed_time(self.start_time)
+        # time_elapsed = self.get_elapsed_time(self.start_time)
 
         total_value  = self.broker.get_value()
         profit       = round(total_value - self.start_cash, 2)
@@ -290,7 +305,7 @@ class DCA3C(bt.Strategy):
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
-        print(f"Time Elapsed:           {time_elapsed}")
+        # print(f"Time Elapsed:           {time_elapsed}")
         print(f"Time period:           {self.time_period}")
 
         print(f"Total Profit:          {self.money_format(profit)}")

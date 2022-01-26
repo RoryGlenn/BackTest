@@ -8,14 +8,6 @@ import backtrader as bt
 import time
 
 
-# StopTrailLimit
-# Time Elapsed:           0 minutes 31 seconds
-# Time period:           7302 days, 0:00:00
-# Total Profit:          $2,179,258.080000
-# ROI:                   217.93%
-# Start Portfolio Value: $1,000,000.000000
-# Final Portfolio Value: $3,179,258.080000
-
 
 class DCA3C(bt.Strategy):
     # BNGO PARAMS
@@ -29,7 +21,7 @@ class DCA3C(bt.Strategy):
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
         ('base_order_size_usd',          7700),
-        ('safety_order_size_usd',        4000),
+        ('safety_order_size_usd',        3850),
     )
 
     ##############################################
@@ -51,7 +43,8 @@ class DCA3C(bt.Strategy):
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
         dt = dt or self.data.datetime[0]
-        
+        minutes = self.datas[0].datetime.time(0)
+
         if isinstance(dt, float):
             dt = bt.num2date(dt)
 
@@ -92,12 +85,13 @@ class DCA3C(bt.Strategy):
         return "${:,.6f}".format(money)
 
     def print_ohlc(self) -> None:
-        date  = self.data.datetime.date()
-        open  = self.money_format(self.data.open[0])
-        high  = self.money_format(self.data.high[0])
-        low   = self.money_format(self.data.low[0])
-        close = self.money_format(self.data.close[0])
-        print(f"{date} Open: {open}, High: {high}, Low: {low}, Close: {close}")
+        date    = self.data.datetime.date()
+        minutes = self.datas[0].datetime.time(0)
+        open    = self.money_format(self.data.open[0])
+        high    = self.money_format(self.data.high[0])
+        low     = self.money_format(self.data.low[0])
+        close   = self.money_format(self.data.close[0])
+        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
         return
 
     def dynamic_dca(self, entry_price: float, base_order_size: float):
@@ -204,8 +198,13 @@ class DCA3C(bt.Strategy):
             if order.isbuy():
                 self.log('BUY EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 if order.exectype == 0:
-                    entry_price     = order.executed.price
-                    base_order_size = order.executed.size
+                    entry_price       = order.executed.price
+                    base_order_size   = order.executed.size
+                    size              = self.params.safety_order_size_usd
+
+                    # If the cost of the stock/coin is larger than our base order size, 
+                    # then we can't order in integer sizes. We must order in fractional sizes                    
+                    safety_order_size = size//entry_price if size//entry_price != 0 else size/entry_price
 
                     self.dca = DCA( entry_price_usd=entry_price,
                                     target_profit_percent=self.params.target_profit_percent,
@@ -215,13 +214,13 @@ class DCA3C(bt.Strategy):
                                     safety_order_step_scale=self.params.safety_order_step_scale,
                                     safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
                                     base_order_size=base_order_size,
-                                    safety_order_size=base_order_size//2
+                                    safety_order_size=safety_order_size
                                 )
                         
                     take_profit_price = self.dca.base_order_required_price
 
-                    print("entry_price:",entry_price)
-                    print("take_profit_price:",take_profit_price)
+                    # print("entry_price:",entry_price)
+                    # print("take_profit_price:",take_profit_price)
 
                     # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
                     self.take_profit_order = self.sell(price=take_profit_price,
@@ -249,6 +248,7 @@ class DCA3C(bt.Strategy):
                     print(self.position)
                     print()
 
+                # reset variables
                 self.safety_orders         = []
                 self.take_profit_order     = None
                 self.is_first_safety_order = True
@@ -261,6 +261,7 @@ class DCA3C(bt.Strategy):
             elif order.isbuy():
                 self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
+            self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
             print()
             print("Cash:", self.broker.get_cash())
             print("Value", self.broker.get_value())
@@ -269,12 +270,16 @@ class DCA3C(bt.Strategy):
             print()
             self.dca.print_table()
             print()
-            self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
+            print()
+            print(order)
+            print()
         else:
             self.log("ORDER UNKNOWN: SOMETHNG WENT WRONG!")
+            print()
             print(order)
+            print()
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
@@ -283,7 +288,9 @@ class DCA3C(bt.Strategy):
 
             if trade.pnl <= 0 or trade.pnlcomm <= 0:
                 print(trade.pnl, trade.pnlcomm)
+                print()
                 print(trade)
+                print()
         return
 
     def notify_cashvalue(self, cash, value) -> None:
@@ -296,12 +303,14 @@ class DCA3C(bt.Strategy):
         print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
-        entry_price     = self.data.close[0]
-        base_order_size = int(self.params.base_order_size_usd/entry_price)
+        entry_price = self.data.close[0]
+        size        = self.params.base_order_size_usd // entry_price
 
-        buy_order = self.buy(size=base_order_size,
-                             exectype=bt.Order.Market)
-
+        # If the cost of the stock/coin is larger than our base order size, 
+        # then we can't order in integer sizes. We must order in fractional sizes
+        base_order_size = size if size != 0 else self.params.base_order_size_usd/entry_price
+        
+        buy_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
         self.safety_orders.append(buy_order)
         return
 
@@ -314,9 +323,17 @@ class DCA3C(bt.Strategy):
         return
 
     def start(self) -> None:
+        print("\n\n^^^^ STARTING THE BACKTEST ^^^^^")
+
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
+
+        # print(self.datas[0].p.todate)
+        # print(self.datas[0].p.fromdate)
+
+        # print(type(self.datas[0].p.todate))
+        # print(type(self.datas[0].p.fromdate))
         return
 
     def stop(self) -> None:

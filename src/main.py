@@ -25,6 +25,8 @@ import time
 STARTING_CASH = 1000000
 BTC_USD_2017  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2017_minute.csv"
 BTC_USD_2018  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2018_minute.csv"
+BTC_USD_2018_SMALL  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2018_minute_small.csv"
+
 ORACLE        = "historical_data/oracle.csv"
 BNGO          = "historical_data/BNGO.csv"
 
@@ -107,31 +109,63 @@ def bngo() -> None:
                     barup='green', bardown='red',
                     barupfill=False, bardownfill=False,
                     volup='green', voldown='red', voltrans=10.0, voloverlay=False)
-
     return
 
 
 def btc_2018() -> None:
     testtime = time.time()
     
-    cerebro = bt.Cerebro()
+    cerebro = bt.Cerebro(stdstats=False)
     cerebro.broker.set_cash(STARTING_CASH)
 
     df = pd.read_csv(BTC_USD_2018, 
-                     low_memory=False, 
-                     usecols=['unix', 'date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'])
+                     low_memory=False,
+                     usecols=['date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'],
+                     parse_dates=True,
+                     skiprows=1)
+                    
     df = df[::-1] # reverse the data
 
-    df.drop("unix", axis=1, inplace=True)
-    df.rename(columns={"Volume USD": 'Volume'})
+    df.rename(columns={'date':'Date', 'symbol':'Symbol', 'open':'Open', 'high':'High', 'low':'Low', 'close':'Close', "Volume USD": 'Volume'}, inplace=True)
 
-    df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-    df.set_index('date', inplace=True)
+    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
+    df.set_index('Date', inplace=True)
+
+    print(df)
 
     # BTC 2018
     data = bt.feeds.PandasData(dataname=df,
-                               fromdate=datetime.datetime(2018, 1, 1),
-                               todate=datetime.datetime(2018, 12, 31))
+                                timeframe=bt.TimeFrame.Minutes,
+                                compression=1,
+                                openinterest=None,
+
+                                # sessionstart=datetime.time(hour=0, minute=1, second=0),
+                                # sessionend=datetime.time(hour=0, minute=10, second=0)
+                                fromdate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=1),
+                                todate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=10),
+                               )
+
+    # data = bt.feeds.GenericCSVData(
+    #             dataname=BTC_USD_2018_SMALL, 
+    #             fromdate=datetime.datetime(year=2018, month=1, day=1),
+    #             todate=datetime.datetime(year=2018, month=2, day=1),
+
+    #             # sessionstart=datetime.time(hour=0, minute=1, second=0),
+    #             # sessionend=datetime.time(hour=0, minute=10, second=0),
+
+    #             dtformat='%Y-%m-%d %H:%M:%S',
+    #             timeframe=bt.TimeFrame.Minutes,
+    #             compression=1,
+    #             datetime=0,
+    #             open=1,
+    #             high=2,
+    #             low=3,
+    #             close=4,
+    #             volume=5,
+    #             openinterest=-1,
+    #             time=-1
+    #         )
+
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)

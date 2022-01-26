@@ -431,16 +431,6 @@ class DCA():
         return
     
     def remove_top_safety_order(self) -> None:
-        # self.deviation_percent_levels.pop(0)
-        # self.safety_order_quantity_levels_usd.pop(0)
-        # self.safety_order_quantity_levels.pop(0)
-        # self.total_quantity_levels_usd.pop(0)
-        # self.price_levels.pop(0)
-        # self.weighted_average_price_levels.pop(0)
-        # self.required_price_levels.pop(0)
-        # self.required_change_percent_levels.pop(0)
-        # self.profit_levels.pop(0)
-
         self.deviation_percent_levels.pop(0)
         self.safety_order_quantity_levels.pop(0)
         self.total_quantity_levels.pop(0)

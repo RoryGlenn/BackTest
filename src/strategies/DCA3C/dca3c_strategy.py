@@ -92,9 +92,6 @@ class DCA3C(bt.Strategy):
         return "${:,.6f}".format(money)
 
     def print_ohlc(self) -> None:
-        if self.data.open[0] == 25.860001:
-            pass
-
         date  = self.data.datetime.date()
         open  = self.money_format(self.data.open[0])
         high  = self.money_format(self.data.high[0])
@@ -184,17 +181,7 @@ class DCA3C(bt.Strategy):
                                                 # exectype=bt.Order.StopTrail)
                                                 # exectype=bt.Order.Limit)
 
-            # print("before pop: ")
-            # print("take profit: quantity_to_sell: ", self.dca.total_quantity_levels[0])
-            # print("take profit: required_price: ",   self.dca.required_price_levels[0])
-            # print()
-
             self.dca.remove_top_safety_order()
-
-            # print("after pop: ")
-            # print("take profit: quantity_to_sell: ", self.dca.total_quantity_levels[0])
-            # print("take profit: required_price: ",   self.dca.required_price_levels[0])
-            # print()
 
             # check if we have placed all safety orders
             if len(self.dca.price_levels) > 0:
@@ -202,9 +189,6 @@ class DCA3C(bt.Strategy):
                                         size=self.dca.safety_order_quantity_levels[0],
                                         exectype=bt.Order.Limit,
                                         oco=self.take_profit_order) # oco = One Cancel Others
-            
-                # print("Safety order: price: ",            self.dca.price_levels[0])
-                # print("Safety order: quantity_to_sell: ", self.dca.safety_order_quantity_levels[0])                
 
         self.safety_orders.append(safety_order)
         
@@ -222,10 +206,6 @@ class DCA3C(bt.Strategy):
                 if order.exectype == 0:
                     entry_price     = order.executed.price
                     base_order_size = order.executed.size
-
-                    # if self.params.dynamic_dca:
-                    #     self.dynamic_dca(entry_price, base_order_size)
-                    # else:
 
                     self.dca = DCA( entry_price_usd=entry_price,
                                     target_profit_percent=self.params.target_profit_percent,
@@ -342,7 +322,7 @@ class DCA3C(bt.Strategy):
     def stop(self) -> None:
         time_elapsed = self.get_elapsed_time(self.start_time)
 
-        total_value  = round(self.broker.get_value()+self.broker.get_cash(), 2)
+        total_value  = self.broker.get_value()
         profit       = round(total_value - self.start_cash, 2)
         roi          = ((total_value / self.start_cash) - 1.0) * 100
         roi          = '{:.2f}%'.format(roi)

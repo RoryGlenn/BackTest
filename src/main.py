@@ -9,8 +9,10 @@
 
 from strategies.DCA3C.dca3c_strategy import DCA3C
 from strategies.DCA3C.dca3c_strategy import DCA
-from strategies.DCA3C.buy_and_hold import BuyAndHold
-from observers.stop_take import SLTPTracking
+from strategies.DCA3C.dca_dynamic    import DCADynamic
+
+from strategies.DCA3C.buy_and_hold   import BuyAndHold
+from observers.stop_take             import SLTPTracking
 
 import backtrader as bt
 import pandas     as pd
@@ -18,14 +20,14 @@ import pandas     as pd
 import datetime
 import os
 import sys
-
-from strategies.DCA3C.dca_dynamic import DCADynamic
-
+import time
 
 STARTING_CASH = 1000000
-BTC_USD       = "historical_data/BTCUSD/Bitstamp_BTCUSD_2017_minute.csv"
+BTC_USD_2017  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2017_minute.csv"
+BTC_USD_2018  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2018_minute.csv"
 ORACLE        = "historical_data/oracle.csv"
 BNGO          = "historical_data/BNGO.csv"
+
 
 
 """
@@ -48,6 +50,14 @@ TODO
     4. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
 
 """
+
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
 
 def oracle() -> None:
     cerebro = bt.Cerebro()
@@ -95,34 +105,53 @@ def bngo() -> None:
     cerebro.run()
     cerebro.plot(style='candlestick', numfigs=1,
                     barup='green', bardown='red',
-                    barupfill=True, bardownfill=True,
-                    volup='green', voldown='red', voltrans=100.0, voloverlay=False)
+                    barupfill=False, bardownfill=False,
+                    volup='green', voldown='red', voltrans=10.0, voloverlay=False)
 
     return
+
+
+def btc_2018() -> None:
+    testtime = time.time()
+    
+    cerebro = bt.Cerebro()
+    cerebro.broker.set_cash(STARTING_CASH)
+
+    df = pd.read_csv(BTC_USD_2018, 
+                     low_memory=False, 
+                     usecols=['unix', 'date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'])
+    df = df[::-1] # reverse the data
+
+    df.drop("unix", axis=1, inplace=True)
+    df.rename(columns={"Volume USD": 'Volume'})
+
+    df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+    df.set_index('date', inplace=True)
+
+    # BTC 2018
+    data = bt.feeds.PandasData(dataname=df,
+                               fromdate=datetime.datetime(2018, 1, 1),
+                               todate=datetime.datetime(2018, 12, 31))
+    cerebro.adddata(data)
+    cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(BuyAndHold)
+    # cerebro.addobserver(SLTPTracking)
+
+    cerebro.run()
+
+    print(f"Test time elapsed (is this number different?): {get_elapsed_time(testtime)}")
+
+    cerebro.plot(style='candlestick', numfigs=1,
+                    barup='green', bardown='red',
+                    barupfill=False, bardownfill=False,
+                    volup='green', voldown='red', voltrans=10.0, voloverlay=False)
+    return
+
 
 
 if __name__ == '__main__':
     os.system("cls")
 
-    # # ERROR
-    # dca = DCA(entry_price_usd=25.860001,
-    #           target_profit_percent=1,
-    #           safety_orders_max=7,
-    #           safety_orders_active_max=7,
-    #           safety_order_volume_scale=2.5,
-    #           safety_order_step_scale=1.56,
-    #           safety_order_price_deviation_percent=1.3,
-    #         #   base_order_size_usd=10,
-    #         #   safety_order_size_usd=10
-    #           base_order_size=300.000000,
-    #           safety_order_size=300.000000//2
-    #         )
-    # dca.print_table()
-
-    # dca = DCADynamic(1, 1, 7, 7, 2.5, 1.56, 1.3, STARTING_CASH)
-    # print(dca.deviation_percent_levels)
-    # print(dca.price_levels)
-    # sys.exit()
-    
-
-    oracle()
+    # oracle()
+    # bngo()
+    btc_2018()

@@ -98,9 +98,11 @@ def btc_2018() -> None:
                      usecols=['date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'],
                      parse_dates=True,
                      skiprows=1)
-                    
-    df = df[::-1] # reverse the data
+    
+    # reverse the data
+    df = df[::-1] 
 
+    # rename the columns 
     df.rename(columns={'date':'Date', 'symbol':'Symbol', 'open':'Open', 'high':'High', 'low':'Low', 'close':'Close', "Volume USD": 'Volume'}, inplace=True)
 
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
@@ -113,14 +115,22 @@ def btc_2018() -> None:
                                 timeframe=bt.TimeFrame.Minutes,
                                 compression=1,
                                 openinterest=None,
+
                                 fromdate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=1),
+                                todate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=2)
+                                
+                                # fromdate=datetime.datetime(year=2018, month=9, day=18, hour=0, minute=1),
                                 # todate=datetime.datetime(year=2018, month=12, day=31, hour=23, minute=59)
-                                todate=datetime.datetime(year=2018, month=1, day=2, hour=0, minute=1)
+                                
+                                # todate=datetime.datetime(year=2018, month=1, day=2, hour=0, minute=1)
                             )
 
-    cerebro.adddata(data, name='BTC-USD') # adding a name while using bokeh will avoid plotting error
+    cerebro.adddata(data, name='BTC/USD-2018') # adding a name while using bokeh will avoid plotting error
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)
+    
+    print("\n^^^^ STARTING THE BACKTEST ^^^^^")
+    
     cerebro.run()
 
     print(f"Time elapsed: {get_elapsed_time(start_time)}")

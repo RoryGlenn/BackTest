@@ -12,31 +12,31 @@ import time
 class DCA3C(bt.Strategy):
 
     # # BTC PARAMS
-    # params = (
-    #     ('dynamic_dca',                  False),
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            7),
-    #     ('safety_orders_active_max',     7),
-    #     ('safety_order_volume_scale',    2.5),
-    #     ('safety_order_step_scale',      1.56),
-    #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          7750),
-    #     ('safety_order_size_usd',        4000),
-    # )
-
-    # BNGO PARAMS
     params = (
-        ('target_profit_percent',        2),
-        ('trail_percent',                0.01), # even though it says its a percent, its a decimal -> 0.2%
+        ('dynamic_dca',                  False),
+        ('target_profit_percent',        0.5),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
         ('safety_order_volume_scale',    2.5),
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
-        ('base_order_size_usd',          7700),
-        ('safety_order_size_usd',        3850),
+        ('base_order_size_usd',          7750),
+        ('safety_order_size_usd',        4000),
     )
+
+    # BNGO PARAMS
+    # params = (
+    #     ('target_profit_percent',        2),
+    #     ('trail_percent',                0.01), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            7),
+    #     ('safety_orders_active_max',     7),
+    #     ('safety_order_volume_scale',    2.5),
+    #     ('safety_order_step_scale',      1.56),
+    #     ('safety_order_price_deviation', 1.3),
+    #     ('base_order_size_usd',          7700),
+    #     ('safety_order_size_usd',        3850),
+    # )
 
     ##############################################
     # ORACLE PARAMS
@@ -184,6 +184,8 @@ class DCA3C(bt.Strategy):
                                     base_order_size=base_order_size,
                                     safety_order_size=safety_order_size
                                 )
+
+                    # self.dca.print_table()
                         
                     take_profit_price = self.dca.base_order_required_price
 
@@ -288,8 +290,6 @@ class DCA3C(bt.Strategy):
         return
 
     def start(self) -> None:
-        print("\n^^^^ STARTING THE BACKTEST ^^^^^")
-
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()

@@ -13,8 +13,7 @@ class DCA3C(bt.Strategy):
 
     # # BTC PARAMS
     params = (
-        ('dynamic_dca',                  False),
-        ('target_profit_percent',        0.5),
+        ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            7),
         ('safety_orders_active_max',     7),
@@ -22,7 +21,7 @@ class DCA3C(bt.Strategy):
         ('safety_order_step_scale',      1.56),
         ('safety_order_price_deviation', 1.3),
         ('base_order_size_usd',          7750),
-        ('safety_order_size_usd',        4000),
+        ('safety_order_size_usd',        3850),
     )
 
     # BNGO PARAMS
@@ -41,7 +40,6 @@ class DCA3C(bt.Strategy):
     ##############################################
     # ORACLE PARAMS
     # params = (
-    #     ('dynamic_dca',                  False),
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
     #     ('safety_orders_max',            7),
@@ -123,8 +121,8 @@ class DCA3C(bt.Strategy):
             self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
                                                size=self.dca.total_quantity_levels[0],
                                                trailpercent=self.params.trail_percent,
-                                                plimit=self.dca.required_price_levels[0],
-                                                exectype=bt.Order.StopTrailLimit)
+                                               plimit=self.dca.required_price_levels[0],
+                                               exectype=bt.Order.StopTrailLimit)
                                                 # exectype=bt.Order.StopTrail)
                                                 # exectype=bt.Order.Limit)
             

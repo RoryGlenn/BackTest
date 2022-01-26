@@ -27,12 +27,14 @@ import sys
 import time
 
 STARTING_CASH       = 1000000
+
 BTC_USD_2017        = "historical_data/BTCUSD/Bitstamp_BTCUSD_2017_minute.csv"
 BTC_USD_2018        = "historical_data/BTCUSD/Bitstamp_BTCUSD_2018_minute.csv"
 BTC_USD_2018_SMALL  = "historical_data/BTCUSD/Bitstamp_BTCUSD_2018_minute_small.csv"
+BTC_USD_ALL         = "historical_data/gemini/gemini_BTCUSD_1min_all.csv"
+
 ORACLE              = "historical_data/oracle.csv"
 BNGO                = "historical_data/BNGO.csv"
-
 
 def get_elapsed_time(start_time: float) -> str:
     end_time     = time.time()
@@ -93,9 +95,10 @@ def btc_2018() -> None:
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(STARTING_CASH)
 
-    df = pd.read_csv(BTC_USD_2018, 
+    df = pd.read_csv(BTC_USD_ALL, 
                      low_memory=False,
-                     usecols=['date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'],
+                    #  usecols=['date', 'symbol', 'open', 'high', 'low', 'close', 'Volume USD'],
+                     usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
                      parse_dates=True,
                      skiprows=1)
     
@@ -103,7 +106,7 @@ def btc_2018() -> None:
     df = df[::-1] 
 
     # rename the columns 
-    df.rename(columns={'date':'Date', 'symbol':'Symbol', 'open':'Open', 'high':'High', 'low':'Low', 'close':'Close', "Volume USD": 'Volume'}, inplace=True)
+    # df.rename(columns={'date':'Date', 'symbol':'Symbol', 'open':'Open', 'high':'High', 'low':'Low', 'close':'Close', "Volume USD": 'Volume'}, inplace=True)
 
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
@@ -116,16 +119,17 @@ def btc_2018() -> None:
                                 compression=1,
                                 openinterest=None,
 
-                                fromdate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=1),
-                                todate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=2)
+                                # for testing small timeframes
+                                # fromdate=datetime.datetime(year=2018, month=1, day=1, hour=0, minute=1),
+                                # todate=datetime.datetime(year=2018, month=2, day=1, hour=0, minute=1)
                                 
-                                # fromdate=datetime.datetime(year=2018, month=9, day=18, hour=0, minute=1),
-                                # todate=datetime.datetime(year=2018, month=12, day=31, hour=23, minute=59)
-                                
-                                # todate=datetime.datetime(year=2018, month=1, day=2, hour=0, minute=1)
+                                # for testing the entire timeframe
+                                fromdate=datetime.datetime(year=2015, month=10, day=8, hour=13, minute=41),
+                                todate=datetime.datetime(year=2016, month=12, day=31, hour=23, minute=59)
                             )
 
-    cerebro.adddata(data, name='BTC/USD-2018') # adding a name while using bokeh will avoid plotting error
+    cerebro.adddata(data, name='BTC/USD-ALL') # adding a name while using bokeh will avoid plotting error
+    # cerebro.resampledata(data, name='BTC/USD-2018', timeframe=bt.TimeFrame.Days)
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)
     
@@ -148,3 +152,31 @@ if __name__ == '__main__':
     # oracle()
     # bngo()
     btc_2018()
+
+"""
+('target_profit_percent',        0.5),
+
+
+^^^^ FINISHED BACKTESTING ^^^^^
+
+Time period:           364 days, 23:59:00
+Total Profit:          $85,208.110000
+ROI:                   8.52%
+Start Portfolio Value: $1,000,000.000000
+Final Portfolio Value: $1,085,208.109400
+Time elapsed: 9 minutes 4 seconds
+
+
+####################################################
+('target_profit_percent',        1),
+
+^^^^ FINISHED BACKTESTING ^^^^^
+
+Time period:           364 days, 23:59:00
+Total Profit:          $103,891.750000
+ROI:                   10.39%
+Start Portfolio Value: $1,000,000.000000
+Final Portfolio Value: $1,103,891.752443
+Time elapsed: 8 minutes 56 seconds
+
+"""

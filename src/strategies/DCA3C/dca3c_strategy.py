@@ -1,6 +1,3 @@
-# Dollar Cost Averaging Strategy
-    # https://community.backtrader.com/topic/4010/dollar-cost-averaging-strategy/15
-
 from __future__           import (absolute_import, division, print_function, unicode_literals)
 from strategies.DCA3C.dca import DCA
 
@@ -8,22 +5,82 @@ import backtrader as bt
 import time
 
 
-
 class DCA3C(bt.Strategy):
 
-    # # BTC PARAMS
+    ############################################################################################
+    # SCALP7
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            7),
+    #     ('safety_orders_active_max',     7),
+    #     ('safety_order_volume_scale',    2.5),
+    #     ('safety_order_step_scale',      1.56),
+    #     ('safety_order_price_deviation', 1.3),
+    #     ('base_order_size_usd',          7750),
+    #     ('safety_order_size_usd',        3850)
+    # )
+
+    ############################################################################################
+    
+    # SCALP20
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            20),
+    #     ('safety_orders_active_max',     2),
+    #     ('safety_order_volume_scale',    1.2),
+    #     ('safety_order_step_scale',      1.05),
+    #     ('safety_order_price_deviation', 1.0),
+    #     ('base_order_size_usd',          13800),
+    #     ('safety_order_size_usd',        6900)
+    # )
+
+    # SCALP20 $1,000 start
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            20),
+    #     ('safety_orders_active_max',     2),
+    #     ('safety_order_volume_scale',    1.2),
+    #     ('safety_order_step_scale',      1.05),
+    #     ('safety_order_price_deviation', 1.0),
+    #     ('base_order_size_usd',          13.5),
+    #     ('safety_order_size_usd',        6.75)
+    # )
+
+
+    # SCALP 15 $1,000 start -> 8.89%
     params = (
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-        ('safety_orders_max',            7),
-        ('safety_orders_active_max',     7),
-        ('safety_order_volume_scale',    2.5),
-        ('safety_order_step_scale',      1.56),
-        ('safety_order_price_deviation', 1.3),
-        ('base_order_size_usd',          7750),
-        ('safety_order_size_usd',        3850),
+        ('safety_orders_max',            15),
+        ('safety_orders_active_max',     15),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.16),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          38),
+        ('safety_order_size_usd',        19)
     )
 
+    
+    ############################################################################################
+    
+    # SCALP26
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            26),
+    #     ('safety_orders_active_max',     2),
+    #     ('safety_order_volume_scale',    1.2),
+    #     ('safety_order_step_scale',      1.05),
+    #     ('safety_order_price_deviation', 1.0),
+    #     ('base_order_size_usd',          5600),
+    #     ('safety_order_size_usd',        2800)
+    # )
+
+
+    ############################################################################################
     # BNGO PARAMS
     # params = (
     #     ('target_profit_percent',        2),
@@ -37,7 +94,7 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_size_usd',        3850),
     # )
 
-    ##############################################
+    ############################################################################################
     # ORACLE PARAMS
     # params = (
     #     ('target_profit_percent',        1),
@@ -50,11 +107,13 @@ class DCA3C(bt.Strategy):
     #     ('base_order_size_usd',          7750),
     #     ('safety_order_size_usd',        4000),
     # )
+    
+    ############################################################################################
 
 
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
-        dt = dt or self.data.datetime[0]
+        dt      = dt or self.data.datetime[0]
         minutes = self.datas[0].datetime.time(0)
 
         if isinstance(dt, float):
@@ -183,8 +242,6 @@ class DCA3C(bt.Strategy):
                                     safety_order_size=safety_order_size
                                 )
 
-                    # self.dca.print_table()
-                        
                     take_profit_price = self.dca.base_order_required_price
 
                     # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
@@ -204,6 +261,7 @@ class DCA3C(bt.Strategy):
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
                     self.safety_orders.append(safety_order)
+
                     # self.dca.print_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
@@ -294,16 +352,13 @@ class DCA3C(bt.Strategy):
         return
 
     def stop(self) -> None:
-        # time_elapsed = self.get_elapsed_time(self.start_time)
-
-        total_value  = self.broker.get_value()
-        profit       = round(total_value - self.start_cash, 2)
-        roi          = ((total_value / self.start_cash) - 1.0) * 100
-        roi          = '{:.2f}%'.format(roi)
+        total_value = self.broker.get_value()
+        profit      = round(total_value - self.start_cash, 2)
+        roi         = ((total_value / self.start_cash) - 1.0) * 100
+        roi         = '{:.2f}%'.format(roi)
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
-        # print(f"Time Elapsed:           {time_elapsed}")
         print(f"Time period:           {self.time_period}")
 
         print(f"Total Profit:          {self.money_format(profit)}")

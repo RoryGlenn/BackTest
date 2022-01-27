@@ -23,6 +23,23 @@ class DCA3C(bt.Strategy):
 
     ############################################################################################
     
+    # SCALP 15 $1,000 start -> 8.89%, Sharpe Ratio: 
+    params = (
+        ('target_profit_percent',        1),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('safety_orders_max',            15),
+        ('safety_orders_active_max',     15),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.16),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          38),
+        ('safety_order_size_usd',        19)
+        # ('base_order_size_usd',          10),
+        # ('safety_order_size_usd',        5)
+
+    )
+    ############################################################################################
+
     # SCALP20
     # params = (
     #     ('target_profit_percent',        1),
@@ -35,6 +52,8 @@ class DCA3C(bt.Strategy):
     #     ('base_order_size_usd',          13800),
     #     ('safety_order_size_usd',        6900)
     # )
+    
+    ############################################################################################
 
     # SCALP20 $1,000 start
     # params = (
@@ -49,21 +68,6 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_size_usd',        6.75)
     # )
 
-
-    # SCALP 15 $1,000 start -> 8.89%
-    params = (
-        ('target_profit_percent',        1),
-        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-        ('safety_orders_max',            15),
-        ('safety_orders_active_max',     15),
-        ('safety_order_volume_scale',    1.2),
-        ('safety_order_step_scale',      1.16),
-        ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          38),
-        ('safety_order_size_usd',        19)
-    )
-
-    
     ############################################################################################
     
     # SCALP26
@@ -353,17 +357,19 @@ class DCA3C(bt.Strategy):
 
     def stop(self) -> None:
         total_value = self.broker.get_value()
-        profit      = round(total_value - self.start_cash, 2)
+        profit      = total_value - self.start_cash
         roi         = ((total_value / self.start_cash) - 1.0) * 100
         roi         = '{:.2f}%'.format(roi)
+
+        profit           = self.money_format(round(profit, 2))
+        self.start_value = self.money_format(round(self.start_value, 2))
+        total_value      = self.money_format(round(total_value, 2))
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
         print(f"Time period:           {self.time_period}")
-
-        print(f"Total Profit:          {self.money_format(profit)}")
+        print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")
-        print(f"Start Portfolio Value: {self.money_format(self.start_value)}")
-        print(f"Final Portfolio Value: {self.money_format(total_value)}")
+        print(f"Start Portfolio Value: {self.start_value}")
+        print(f"Final Portfolio Value: {total_value}")
         return
-

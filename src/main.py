@@ -51,6 +51,7 @@ def oracle() -> None:
 
     cerebro.adddata(data)
     cerebro.addstrategy(DCA3C)
+    # cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Minutes, compression=1, _name="SharpeRatio")
 
     cerebro.run()
     cerebro.plot(style='candlestick', numfigs=1,
@@ -99,7 +100,7 @@ def btc() -> None:
     # reverse the data
     df = df[::-1]
 
-    # to improve start up speed, remove unnecessary data
+    # to improve start up speed, drop all data outside of testing timeframe
     df = df.drop(df[df['Date'] < start_date_str].index)
     df = df.drop(df[df['Date'] > end_date_str].index)
 
@@ -157,7 +158,18 @@ def btc() -> None:
     cerebro.adddata(data, name='BTC/USD-ALL') # adding a name while using bokeh will avoid plotting error
     cerebro.addstrategy(DCA3C)
     # cerebro.addstrategy(BuyAndHold)
+
+    # adding analyzers
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Minutes, compression=1)
+    cerebro.addanalyzer(bt.analyzers.DrawDown)
+    cerebro.addanalyzer(bt.analyzers.SQN)
+    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
     
+    # where is the ulcer performance index?
+    # ulcer performance index is similar to the sharpe ratio with one key difference, it only looks at loses in the calculation (depth and drawdown)
+
     print("\n^^^^ STARTING THE BACKTEST ^^^^^")
     
     cerebro.run()
@@ -169,8 +181,6 @@ def btc() -> None:
               output_mode='show',
               scheme=Blackly())
     cerebro.plot(b)
-
-
     return
 
 

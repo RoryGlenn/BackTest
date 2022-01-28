@@ -7,8 +7,16 @@ import time
 
 class DCA3C(bt.Strategy):
 
+    """
+    All parameters must have
+        1. 50% deviation from base order on final safety order
+        2. Use all funds on last safety order
+    
+    
+    """
+
     ############################################################################################
-    # SCALP7
+    # SCALP7  $1,000 start -> 2.8% ROI
     # params = (
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -17,13 +25,13 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_volume_scale',    2.5),
     #     ('safety_order_step_scale',      1.56),
     #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          7750),
-    #     ('safety_order_size_usd',        3850)
+    #     ('base_order_size_usd',          8),
+    #     ('safety_order_size_usd',        4)
     # )
 
     ############################################################################################
     
-    # SCALP 15 $1,000 start -> 8.89%, Sharpe Ratio: 
+    # SCALP 15 $1,000 start -> 8.89% ROI
     params = (
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -34,33 +42,17 @@ class DCA3C(bt.Strategy):
         ('safety_order_price_deviation', 1.0),
         ('base_order_size_usd',          38),
         ('safety_order_size_usd',        19)
-        # ('base_order_size_usd',          10),
-        # ('safety_order_size_usd',        5)
-
     )
+
+
     ############################################################################################
 
-    # SCALP20
+    # SCALP20 $1,000 start -> 8.13% ROI
     # params = (
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
     #     ('safety_orders_max',            20),
-    #     ('safety_orders_active_max',     2),
-    #     ('safety_order_volume_scale',    1.2),
-    #     ('safety_order_step_scale',      1.05),
-    #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          13800),
-    #     ('safety_order_size_usd',        6900)
-    # )
-    
-    ############################################################################################
-
-    # SCALP20 $1,000 start
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            20),
-    #     ('safety_orders_active_max',     2),
+    #     ('safety_orders_active_max',     20),
     #     ('safety_order_volume_scale',    1.2),
     #     ('safety_order_step_scale',      1.05),
     #     ('safety_order_price_deviation', 1.0),
@@ -70,48 +62,19 @@ class DCA3C(bt.Strategy):
 
     ############################################################################################
     
-    # SCALP26
+    # SCALP26 $1,000 start -> 3.31% ROI
     # params = (
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
     #     ('safety_orders_max',            26),
-    #     ('safety_orders_active_max',     2),
+    #     ('safety_orders_active_max',     26),
     #     ('safety_order_volume_scale',    1.2),
     #     ('safety_order_step_scale',      1.05),
     #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          5600),
-    #     ('safety_order_size_usd',        2800)
+    #     ('base_order_size_usd',          5.5),
+    #     ('safety_order_size_usd',        2.75)
     # )
 
-
-    ############################################################################################
-    # BNGO PARAMS
-    # params = (
-    #     ('target_profit_percent',        2),
-    #     ('trail_percent',                0.01), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            7),
-    #     ('safety_orders_active_max',     7),
-    #     ('safety_order_volume_scale',    2.5),
-    #     ('safety_order_step_scale',      1.56),
-    #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          7700),
-    #     ('safety_order_size_usd',        3850),
-    # )
-
-    ############################################################################################
-    # ORACLE PARAMS
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            7),
-    #     ('safety_orders_active_max',     7),
-    #     ('safety_order_volume_scale',    2.5),
-    #     ('safety_order_step_scale',      1.56),
-    #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          7750),
-    #     ('safety_order_size_usd',        4000),
-    # )
-    
     ############################################################################################
 
 
@@ -128,13 +91,8 @@ class DCA3C(bt.Strategy):
         return
 
     def __init__(self) -> None:
-        # Update TP to include making back the commission
-        # self.params.tp += commission
-
         self.take_profit_price = 0.0
         self.stop_limit_price  = 0.0
-
-        self.start_time = time.time()
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -148,13 +106,6 @@ class DCA3C(bt.Strategy):
         self.start_value           = 0
         self.time_period           = None
         return
-
-    def get_elapsed_time(self, start_time: float) -> str:
-        end_time     = time.time()
-        elapsed_time = round(end_time - start_time)
-        minutes      = elapsed_time // 60
-        seconds      = elapsed_time % 60
-        return f"{minutes} minutes {seconds} seconds"
 
     def money_format(self, money: float) -> str:
         return "${:,.6f}".format(money)

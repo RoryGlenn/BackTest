@@ -5,6 +5,7 @@ import sys
 import pandas as pd
 
 from strategies.DCA3C.dca_dynamic import DCADynamic
+from pprint                       import pprint
 
 pd.options.display.float_format = '{:,.8f}'.format
 
@@ -190,7 +191,10 @@ class DCA():
         prev_so_quantity = 0
 
         if self.safety_order_size == 0:
-            safety_order_size = self.base_order_cost / self.entry_price_usd
+            # safety_order_size = self.base_order_cost / self.entry_price_usd
+            # prev_so_quantity = safety_order_size
+
+            safety_order_size = self.safety_order_size_usd / self.entry_price_usd
             prev_so_quantity = safety_order_size
         else:
             # amount of money to spend is determined by the base order size and safety order size
@@ -203,7 +207,7 @@ class DCA():
         for _ in range(1, self.safety_orders_max):
             so_quantity = self.safety_order_volume_scale * prev_so_quantity
             self.safety_order_quantity_levels.append(so_quantity)
-            prev_so_quantity = self.safety_order_volume_scale * prev_so_quantity
+            prev_so_quantity = so_quantity
         return
 
     def __set_quantity_levels_dependent(self) -> None:

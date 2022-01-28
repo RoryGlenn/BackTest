@@ -160,15 +160,12 @@ def btc() -> None:
     # cerebro.addstrategy(BuyAndHold)
 
     # adding analyzers
-    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days)
-    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days)
-    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Minutes, compression=1)
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days, compression=1)
+    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days, compression=1)
+    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Days, compression=1)
     cerebro.addanalyzer(bt.analyzers.DrawDown)
     cerebro.addanalyzer(bt.analyzers.SQN)
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
-    
-    # where is the ulcer performance index?
-    # ulcer performance index is similar to the sharpe ratio with one key difference, it only looks at loses in the calculation (depth and drawdown)
 
     print("\n^^^^ STARTING THE BACKTEST ^^^^^")
     
@@ -177,7 +174,7 @@ def btc() -> None:
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
     b = Bokeh(style='bar',
-              filename='backtest_results/btc_2018_backtest_result.html',
+              filename='backtest_results/Scalp15.html',
               output_mode='show',
               scheme=Blackly())
     cerebro.plot(b)
@@ -189,23 +186,23 @@ if __name__ == '__main__':
     os.system("cls")
     os.system("color")
 
-    # entry_price_usd   = 1000
-    # base_order_size   = 38 / entry_price_usd
-    # safety_order_size = 19 / entry_price_usd
+    # 10 Dollars is worth about 0.00028 BTC
+    entry_price_usd   = 36848.61
 
-    # dca = DCA(
-    #             entry_price_usd=1000,
-    #             target_profit_percent=1,
-    #             safety_orders_max=15,
-    #             safety_orders_active_max=15,
-    #             safety_order_volume_scale=1.2,
-    #             safety_order_step_scale=1.16,
-    #             safety_order_price_deviation_percent=1,
-    #             base_order_size=base_order_size,
-    #             safety_order_size=safety_order_size)
+    dca = DCA(
+                entry_price_usd=entry_price_usd,
+                target_profit_percent=1,
+                safety_orders_max=15,
+                safety_orders_active_max=15,
+                safety_order_volume_scale=1.2,
+                safety_order_step_scale=1.16,
+                safety_order_price_deviation_percent=1,
+                base_order_size=0.00028,
+                safety_order_size=0.00028
+            )
 
-    # dca.print_table()
-    # sys.exit()
+    dca.print_table()
+    sys.exit()
 
     # oracle()
     # bngo()

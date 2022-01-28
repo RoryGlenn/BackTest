@@ -10,6 +10,9 @@ from pprint                       import pprint
 pd.options.display.float_format = '{:,.8f}'.format
 
 
+# why don't we just set base_order_quantity or base_order_quantity_usd right
+#  in the beginning instead of doing all of these checks??????????????????????????????????????????
+
 class DCA():
     def __init__(self,
                 entry_price_usd:                      float, 
@@ -59,6 +62,7 @@ class DCA():
         self.base_order_cost:                      float = 0.0
         self.base_order_profit:                    float = 0.0
         self.base_order_required_price:            float = 0.0
+        self.base_order_deviation_percent:         float = 0.0
 
         if max_cash:
             # dynamically sizes the safety orders volume of the safety_order_size variable
@@ -285,7 +289,7 @@ class DCA():
                 
             weighted_average = numerator / self.total_quantity_levels[i]
             self.weighted_average_price_levels.append(weighted_average)
-        return    
+        return
     
     def __set_required_price_levels(self) -> None:
         """Sets the required price for each safety order number."""
@@ -365,14 +369,15 @@ class DCA():
 
     def __set_df_table(self) -> None:
         safety_order_numbers = [i for i in range(self.safety_orders_max+1)]
-        base_order_size      = self.base_order_size_usd / self.entry_price_usd if self.base_order_size == 0 else self.base_order_size
+        self.base_order_size = self.base_order_size_usd / self.entry_price_usd if self.base_order_size == 0 else self.base_order_size
+        self.base_order_size_usd = self.base_order_cost
 
         self.df = pd.DataFrame(
             {
                 'safety_order_number':     safety_order_numbers,
                 'deviation_percent':       [0]                               + self.deviation_percent_levels,
-                'quantity':                [base_order_size]                 + self.safety_order_quantity_levels,
-                'total_quantity':          [base_order_size]                 + self.total_quantity_levels,
+                'quantity':                [self.base_order_size]                 + self.safety_order_quantity_levels,
+                'total_quantity':          [self.base_order_size]                 + self.total_quantity_levels,
                 'quantity_usd':            [self.base_order_cost]            + self.safety_order_quantity_levels_usd,
                 'total_quantity_usd':      [self.base_order_cost]            + self.total_quantity_levels_usd,
                 'price':                   [self.entry_price_usd]            + self.price_levels,

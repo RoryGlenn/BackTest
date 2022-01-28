@@ -4,7 +4,7 @@ This bot uses DCA in order lower the average buy price for a purchased coin."""
 import sys
 import pandas as pd
 
-from strategies.DCA3C.dca_dynamic import DCADynamic
+# from strategies.DCA3C.dca_dynamic import DCADynamic
 from pprint                       import pprint
 
 pd.options.display.float_format = '{:,.8f}'.format
@@ -63,7 +63,8 @@ class DCA():
         if max_cash:
             # dynamically sizes the safety orders volume of the safety_order_size variable
             """spreads out and uses all available cash accross safety orders in order to maximize profit."""
-            self.df = DCADynamic()
+            # self.df = DCADynamic()
+            pass
         else:
             self.start()
         return
@@ -228,6 +229,7 @@ class DCA():
         for i in range(self.safety_orders_max):
             quantity = self.safety_order_quantity_levels_usd[i] / self.price_levels[i]
             self.safety_order_quantity_levels.append(quantity)
+            # print(self.safety_order_quantity_levels)
         return
 
     def __set_quantity_usd_levels_dependent(self) -> None:
@@ -252,12 +254,12 @@ class DCA():
     def __set_quantity_usd_levels(self) -> None:
         prev_so_usd_quantity = 0
 
-        if self.safety_order_size == 0:
-            safety_order_size = self.base_order_cost / self.entry_price_usd
-            prev_so_usd_quantity = safety_order_size
+        if self.safety_order_size_usd == 0:
+            safety_order_size_usd = self.safety_order_size * self.entry_price_usd
+            prev_so_usd_quantity  = safety_order_size_usd
         else:
             # amount of money to spend is determined by the base order size and safety order size
-            prev_so_usd_quantity = self.safety_order_size
+            prev_so_usd_quantity = self.safety_order_size_usd
         
         # first safety order
         self.safety_order_quantity_levels_usd.append(prev_so_usd_quantity)
@@ -266,7 +268,7 @@ class DCA():
         for _ in range(1, self.safety_orders_max):
             so_quantity = self.safety_order_volume_scale * prev_so_usd_quantity
             self.safety_order_quantity_levels_usd.append(so_quantity)
-            prev_so_usd_quantity = self.safety_order_volume_scale * prev_so_usd_quantity
+            prev_so_usd_quantity = so_quantity
         return
 
     def __set_total_quantity_levels(self) -> None:

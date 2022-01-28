@@ -85,13 +85,24 @@ def bngo() -> None:
 def btc() -> None:
     start_time = time.time()
 
+    """
+    3 bad periods
+    3 neutral periods
+    3 good periods
+    """
+
+    # period 1: (4/14/2021 - 7/21/21)
     start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
     end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
+
+    # period 2: (1/7/2018 - 4/1/2018)
+    start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
 
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_str   = end_date.strftime("%Y-%m-%d %H:%M:%S")
 
-    df = pd.read_csv(BTC_USD_2021,
+    df = pd.read_csv(BTC_USD_2018,
                      low_memory=False,
                      usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
                      parse_dates=True,
@@ -160,9 +171,9 @@ def btc() -> None:
     # cerebro.addstrategy(BuyAndHold)
 
     # adding analyzers
-    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days, compression=1)
-    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days, compression=1)
-    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Days, compression=1)
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Days)
     cerebro.addanalyzer(bt.analyzers.DrawDown)
     cerebro.addanalyzer(bt.analyzers.SQN)
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
@@ -174,7 +185,7 @@ def btc() -> None:
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
     b = Bokeh(style='bar',
-              filename='backtest_results/Scalp15.html',
+              filename='backtest_results/Scalp20_period2.html',
               output_mode='show',
               scheme=Blackly())
     cerebro.plot(b)
@@ -186,19 +197,22 @@ if __name__ == '__main__':
     os.system("cls")
     os.system("color")
 
-    # 10 Dollars is worth about 0.00028 BTC
-    entry_price_usd   = 36848.61
+    # # 10 Dollars is worth about 0.00028 BTC
+    entry_price_usd   = 37153.34
+    base_order_size   = 38 / entry_price_usd
+    safety_order_size = base_order_size / 2
 
+    print(safety_order_size)
     dca = DCA(
                 entry_price_usd=entry_price_usd,
                 target_profit_percent=1,
-                safety_orders_max=15,
-                safety_orders_active_max=15,
+                safety_orders_max=20,
+                safety_orders_active_max=20,
                 safety_order_volume_scale=1.2,
-                safety_order_step_scale=1.16,
+                safety_order_step_scale=1.05,
                 safety_order_price_deviation_percent=1,
-                base_order_size=0.00028,
-                safety_order_size=0.00028
+                base_order_size=base_order_size,
+                safety_order_size=safety_order_size
             )
 
     dca.print_table()

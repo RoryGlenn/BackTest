@@ -31,7 +31,11 @@ class DCA3C(bt.Strategy):
 
     ############################################################################################
     
-    # SCALP 15 $1,000 start -> 8.89% ROI
+    """
+    SCALP 15 $1,000 start
+        period1: 8.89% ROI
+        period2: 2.59%
+    """
     params = (
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -44,21 +48,24 @@ class DCA3C(bt.Strategy):
         ('safety_order_size_usd',        19)
     )
 
-
     ############################################################################################
 
-    # SCALP20 $1,000 start -> 8.13% ROI
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            20),
-    #     ('safety_orders_active_max',     20),
-    #     ('safety_order_volume_scale',    1.2),
-    #     ('safety_order_step_scale',      1.05),
-    #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          13.5),
-    #     ('safety_order_size_usd',        6.75)
-    # )
+    """
+    SCALP20 $1,000 start
+        period1: 8.13% ROI
+        period2: 6.25% ROI
+    """
+    params = (
+        ('target_profit_percent',        1),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('safety_orders_max',            20),
+        ('safety_orders_active_max',     20),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.05),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          38),
+        ('safety_order_size_usd',        19)
+    )
 
     ############################################################################################
     

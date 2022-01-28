@@ -31,5 +31,4 @@ dca.print_table()
 
 
 def test_deviation_percent():
-    for i in dca.deviation_percent_levels:
-        pass
+    pass

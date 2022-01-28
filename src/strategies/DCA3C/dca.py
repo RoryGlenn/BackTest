@@ -20,7 +20,7 @@ class DCA():
                 safety_order_step_scale:              float, 
                 safety_order_price_deviation_percent: float, 
                 base_order_size_usd:                  float=0.0,
-                safety_order_size_usd:                float=0.0, 
+                safety_order_size_usd:                float=0.0,
                 base_order_size:                      float=0.0,
                 safety_order_size:                    float=0.0,
                 max_cash:                             bool=False) -> None:
@@ -308,22 +308,11 @@ class DCA():
         """The more safety orders that are filled, the larger the profit will be.
         Each profit level is based on the previous profit level except for the base order."""
         
-        prev_profit = 0
-
-        if self.base_order_size_usd == 0:
-            base_order_entry_value = self.entry_price_usd * self.base_order_size
-            base_order_exit_value  = self.base_order_size * ( self.entry_price_usd + (self.entry_price_usd * (self.target_profit_percent/100)) )
-            prev_profit            = base_order_exit_value - base_order_entry_value
-        else:
-            base_order_exit_value  = self.base_order_size_usd + ( self.base_order_size_usd * (self.target_profit_percent/100) )
-            prev_profit            = base_order_exit_value - self.base_order_size_usd
-
         for i in range(self.safety_orders_max):
             so_entry_value = self.price_levels[i] * self.safety_order_quantity_levels[i]
             so_exit_value  = self.required_price_levels[i] * self.safety_order_quantity_levels[i]
-            profit         = so_exit_value - so_entry_value + prev_profit
+            profit         = so_exit_value - so_entry_value 
             self.profit_levels.append(profit)
-            prev_profit = profit
         return
 
     def __set_base_order_roi_level(self) -> None:

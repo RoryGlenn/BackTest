@@ -4,7 +4,6 @@ This bot uses DCA in order lower the average buy price for a purchased coin."""
 import sys
 import pandas as pd
 
-# from strategies.DCA3C.dca_dynamic import DCADynamic
 from pprint                       import pprint
 
 pd.options.display.float_format = '{:,.8f}'.format
@@ -12,6 +11,7 @@ pd.options.display.float_format = '{:,.8f}'.format
 
 # why don't we just set base_order_quantity or base_order_quantity_usd right
 #  in the beginning instead of doing all of these checks??????????????????????????????????????????
+
 
 class DCA():
     def __init__(self,
@@ -26,7 +26,7 @@ class DCA():
                 safety_order_size_usd:                float=0.0,
                 base_order_size:                      float=0.0,
                 safety_order_size:                    float=0.0,
-                max_cash:                             bool=False) -> None:
+                total_usd:                            float=0.0) -> None:
 
         self.deviation_percent_levels:          list          = [ ]
         self.price_levels:                      list          = [ ]
@@ -64,11 +64,12 @@ class DCA():
         self.base_order_required_price:            float = 0.0
         self.base_order_deviation_percent:         float = 0.0
 
-        if max_cash:
-            # dynamically sizes the safety orders volume of the safety_order_size variable
+        self.total_usd:                            float = total_usd
+
+        if self.total_usd > 0:
             """spreads out and uses all available cash accross safety orders in order to maximize profit."""
-            # self.df = DCADynamic()
-            pass
+            # self.start()
+            self.optimize()
         else:
             self.start()
         return
@@ -79,6 +80,7 @@ class DCA():
         base order size, safety order size and values from the config file which is set by the user.
 
         """
+
         self.__set_base_order_variables()
         self.__set_deviation_percent_levels()
         self.__set_price_levels()
@@ -403,7 +405,74 @@ class DCA():
         self.profit_levels.pop(0)
         self.safety_order_roi_levels.pop(0)
         return
+    
+    def reset(self) -> None:
+        self.deviation_percent_levels = []
+        self.safety_order_quantity_levels = []
+        self.total_quantity_levels = []
+        self.safety_order_quantity_levels_usd = []
+        self.total_quantity_levels_usd = []
+        self.price_levels = []
+        self.weighted_average_price_levels = []
+        self.required_price_levels = []
+        self.required_change_percent_levels = []
+        self.profit_levels = []
+        self.safety_order_roi_levels = []
+        return
 
     def print_table(self) -> None:
         print(self.df)
         return
+
+
+    def optimize(self) -> None:
+        # if the last safety order uses all of our cash within a 1% deviation
+        upper_limit                = self.total_usd
+        self.base_order_size_usd   = self.base_order_size   * self.entry_price_usd
+        self.safety_order_size_usd = self.safety_order_size * self.entry_price_usd
+
+        upper = False
+        lower = False
+
+        ### DYNAMIC DCA ##
+        while True:
+            self.base_order_size   = 0
+            self.safety_order_size = 0
+            self.start()
+
+            if upper and lower:
+                # self.safety_order_size_usd -= 1
+                break
+
+            if self.total_quantity_levels_usd[-1] > upper_limit: # maybe this need to be within 1% of total_usd rather than 1 dollar
+                self.safety_order_size_usd -= 1
+                upper = True
+            else:
+                self.safety_order_size_usd += 1
+                lower = True
+            
+            self.reset()
+
+        if self.total_quantity_levels_usd[-1] >= self.total_usd:
+            # this should never happen!!!
+            print("last safety order is greater than all our cash!")
+            print(self.total_quantity_levels_usd)
+
+        self.base_order_size_usd = self.safety_order_size_usd * 2
+        return
+
+
+
+# dca = DCA(
+#             entry_price_usd=10,
+#             target_profit_percent=1,
+#             safety_orders_max=7,
+#             safety_orders_active_max=7,
+#             safety_order_volume_scale=2.5,
+#             safety_order_step_scale=1,
+#             safety_order_price_deviation_percent=3,
+#             base_order_size_usd=10,
+#             safety_order_size_usd=10
+#         )
+
+# dca.print_table()

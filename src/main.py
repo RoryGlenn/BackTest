@@ -2,7 +2,7 @@ from strategies.DCA3C.dca3c_strategy import DCA
 from strategies.DCA3C.dca3c_strategy import DCA3C
 from strategies.DCA3C.dca_dynamic    import DCADynamic
 
-from strategies.DCA3C.buy_and_hold   import BuyAndHold
+from strategies.buy_and_hold   import BuyAndHold
 from observers.stop_take             import SLTPTracking
 
 from backtrader_plotting             import Bokeh, OptBrowser
@@ -98,6 +98,11 @@ def btc() -> None:
     # period 2: (1/7/2018 - 4/1/2018)
     start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
     end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
+
+    # just for testing optimization
+    start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2018, month=1, day=8, hour=0, minute=1)
+
 
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_str   = end_date.strftime("%Y-%m-%d %H:%M:%S")
@@ -197,27 +202,8 @@ if __name__ == '__main__':
     os.system("cls")
     os.system("color")
 
-    # # 10 Dollars is worth about 0.00028 BTC
-    entry_price_usd   = 37153.34
-    base_order_size   = 38 / entry_price_usd
-    safety_order_size = base_order_size / 2
-
-    print(safety_order_size)
-    dca = DCA(
-                entry_price_usd=entry_price_usd,
-                target_profit_percent=1,
-                safety_orders_max=20,
-                safety_orders_active_max=20,
-                safety_order_volume_scale=1.2,
-                safety_order_step_scale=1.05,
-                safety_order_price_deviation_percent=1,
-                base_order_size=base_order_size,
-                safety_order_size=safety_order_size
-            )
-
-    dca.print_table()
-    sys.exit()
-
     # oracle()
     # bngo()
     btc()
+
+

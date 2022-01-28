@@ -13,3 +13,7 @@
 3. PULL DATA FROM CRYPTO FUTURES TO SEE WHEN LIQUIDATION OCCURES
 
 4. Time frames: Buy and hold might win out in the long run, but what time frames does DCA when out?
+
+
+Machine learning with DCA?
+ML knows what settings to use depending on what market condition we are in (bull vs bear?)

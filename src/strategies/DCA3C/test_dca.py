@@ -32,7 +32,7 @@ class DCAScalp7():
                 )
 
         self.round_everything()
-        # self.dca.print_table()
+        self.dca.print_table()
         return
 
     def round_everything(self) -> None:

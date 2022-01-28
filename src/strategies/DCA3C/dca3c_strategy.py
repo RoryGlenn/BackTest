@@ -44,8 +44,8 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    1.2),
         ('safety_order_step_scale',      1.16),
         ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          38),
-        ('safety_order_size_usd',        19)
+        ('base_order_size_usd',          20),
+        ('safety_order_size_usd',        10)
     )
 
     ############################################################################################
@@ -55,17 +55,17 @@ class DCA3C(bt.Strategy):
         period1: 8.13% ROI
         period2: 6.25% ROI
     """
-    params = (
-        ('target_profit_percent',        1),
-        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-        ('safety_orders_max',            20),
-        ('safety_orders_active_max',     20),
-        ('safety_order_volume_scale',    1.2),
-        ('safety_order_step_scale',      1.05),
-        ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          38),
-        ('safety_order_size_usd',        19)
-    )
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            20),
+    #     ('safety_orders_active_max',     20),
+    #     ('safety_order_volume_scale',    1.2),
+    #     ('safety_order_step_scale',      1.05),
+    #     ('safety_order_price_deviation', 1.0),
+    #     ('base_order_size_usd',          38),
+    #     ('safety_order_size_usd',        19)
+    # )
 
     ############################################################################################
     
@@ -193,6 +193,8 @@ class DCA3C(bt.Strategy):
                     # then we can't order in integer sizes. We must order in fractional sizes                    
                     safety_order_size = size//entry_price if size//entry_price != 0 else size/entry_price
 
+                    print(self.broker.get_cash())
+
                     self.dca = DCA( entry_price_usd=entry_price,
                                     target_profit_percent=self.params.target_profit_percent,
                                     safety_orders_max=self.params.safety_orders_max,
@@ -201,7 +203,8 @@ class DCA3C(bt.Strategy):
                                     safety_order_step_scale=self.params.safety_order_step_scale,
                                     safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
                                     base_order_size=base_order_size,
-                                    safety_order_size=safety_order_size
+                                    safety_order_size=safety_order_size,
+                                    total_usd=self.broker.get_cash()
                                 )
 
                     take_profit_price = self.dca.base_order_required_price

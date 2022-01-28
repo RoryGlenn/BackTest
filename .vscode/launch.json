@@ -8,8 +8,8 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            // "program": "src/main.py",
-            "program": "${file}",
+            "program": "src/main.py",
+            // "program": "${file}",
             "justMyCode": true
         }
     ]

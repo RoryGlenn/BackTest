@@ -7,55 +7,6 @@ import backtrader as bt
 
 
 class DCA3C(bt.Strategy):
-    ############################################################################################
-    """
-    SCALP7 $10,000 start
-        period 1: 2.03%
-        period 2: 2.49%
-        period 3: 1.10%
-
-        period 4: 2.03%
-        period 5: 1.42%
-        period 6: 0.43%
-        
-        period 7: 0.06%
-        period 8: 0.49%
-        period 9: 0.24%
-
-        period 10: ??? (ALL)
-
-    """
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            7),
-    #     ('safety_orders_active_max',     7),
-    #     ('safety_order_volume_scale',    2.5),
-    #     ('safety_order_step_scale',      1.56),
-    #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          20),
-    #     ('safety_order_size_usd',        4)
-    # )
-
-    ############################################################################################
-    
-    """
-    SCALP 15
-        period 1: 6.97%
-        period 2: 2.64%
-        period 3: 3.23% (bear market AVG 4.28%)
-
-        period 4: 8.59%
-        period 5: 5.94%
-        period 6: 1.89% (bull market AVG 5.47%)
-        
-        period 7: 0.95%
-        period 8: 1.72%
-        period 9: 0.88% (sideways market AVG 1.183%)
-
-        period 10: 174.57% (ALL)
-    """
-
     params = (
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%

@@ -89,20 +89,22 @@ def bngo() -> None:
 def btc() -> None:
     start_time = time.time()
 
+    ########################################## COMPARE THE VALUES BELOW WITH A BUY AND HOLD STRATEGY ##########################################
+
     """
-    periods 1-3: bear markets
-    periods 4-6: bull markets
-    periods 7-9: sideways/neutral markets
+        periods 1-3: bear markets
+        periods 4-6: bull markets
+        periods 7-9: sideways/neutral markets
 
     """
 
     # period 1: (4/14/2021 - 7/21/21)
-    # FILE = BTC_USD_2021
-    # start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
-    # end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
+    FILE       = BTC_USD_2021
+    start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
 
     # period 2: (1/7/2018 - 4/1/2018)
-    # FILE = BTC_USD_2018
+    # FILE       = BTC_USD_2018
     # start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
 
@@ -136,10 +138,10 @@ def btc() -> None:
     # start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2019, month=5, day=1, hour=0, minute=1)
 
-    # period 9: 
-    FILE       = BTC_USD_2019
-    start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
+    # period 9: 1/1/2019 -> 4/1/19
+    # FILE       = BTC_USD_2019
+    # start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
 
 
     ##############################################################################
@@ -178,8 +180,8 @@ def btc() -> None:
     cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
 
     cerebro.adddata(data, name='BTC/USD-ALL') # adding a name while using bokeh will avoid plotting error
-    cerebro.addstrategy(DCA3C)
-    # cerebro.addstrategy(BuyAndHold)
+    # cerebro.addstrategy(DCA3C)
+    cerebro.addstrategy(BuyAndHold)
 
     # adding analyzers
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Months)

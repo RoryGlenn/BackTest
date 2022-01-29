@@ -37,27 +37,30 @@ class DCA3C(bt.Strategy):
     
     """
     SCALP 15 
-        period 1:
-        period 2:
-        period 3:
-        period 4:
-        period 5:
-        period 6:
-        period 7:
-        period 8:
-        period 9:    
+        period 1: 6.97%
+        period 2: 2.64%
+        period 3: 3.23% (bear market AVG 4.28%)
+
+        period 4: 8.59%
+        period 5: 5.94%
+        period 6: 1.89% (bull market AVG 5.47%)
+        
+        period 7: 0.95%
+        period 8: 1.72%
+        period 9: 0.88% (sideways market AVG 1.183%)
     """
-    params = (
-        ('target_profit_percent',        1),
-        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-        ('safety_orders_max',            15),
-        ('safety_orders_active_max',     15),
-        ('safety_order_volume_scale',    1.2),
-        ('safety_order_step_scale',      1.16),
-        ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          20),
-        ('safety_order_size_usd',        10)
-    )
+
+    # params = (
+    #     ('target_profit_percent',        1),
+    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+    #     ('safety_orders_max',            15),
+    #     ('safety_orders_active_max',     15),
+    #     ('safety_order_volume_scale',    1.2),
+    #     ('safety_order_step_scale',      1.16),
+    #     ('safety_order_price_deviation', 1.0),
+    #     ('base_order_size_usd',          20),
+    #     ('safety_order_size_usd',        10)
+    # )
 
     ############################################################################################
 
@@ -114,6 +117,23 @@ class DCA3C(bt.Strategy):
 
     ############################################################################################
 
+    """
+    BUY & HOLD
+        period 1:
+        period 2:
+        period 3:
+        period 4:
+        period 5:
+        period 6:
+        period 7:
+        period 8:
+        period 9:
+    
+    """
+
+
+    ############################################################################################
+
 
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
@@ -131,7 +151,7 @@ class DCA3C(bt.Strategy):
         self.take_profit_price = 0.0
         self.stop_limit_price  = 0.0
 
-        self.safety_order_sizes = list()
+        # self.safety_order_sizes = list()
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -237,7 +257,7 @@ class DCA3C(bt.Strategy):
                                     total_usd=self.broker.get_cash()
                                 )
                     
-                    self.safety_order_sizes.append(self.dca.safety_order_size_usd)
+                    # self.safety_order_sizes.append(self.dca.safety_order_size_usd)
 
                     take_profit_price = self.dca.base_order_required_price
 
@@ -377,5 +397,5 @@ class DCA3C(bt.Strategy):
         print(f"Start Portfolio Value: {self.start_value}")
         print(f"Final Portfolio Value: {total_value}")
 
-        print("safety_order_sizes:", self.safety_order_sizes)
+        # print("safety_order_sizes:", self.safety_order_sizes)
         return

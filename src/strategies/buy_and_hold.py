@@ -16,23 +16,10 @@ class BuyAndHold(bt.Strategy):
         return
 
     def __init__(self) -> None:
-        # Update TP to include making back the commission
-        # self.params.tp += commission
-
-        self.start_time = time.time()
-
-        # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
-        self.take_profit_order = None
-        
-        # Store all the Safety Orders so we can cancel the unfilled ones after TPing
-        self.safety_orders         = []
-
-        self.dca                   = None
-        self.is_first_safety_order = True
-        self.start_cash            = 0
-        self.start_value           = 0
-        self.time_period           = None
-        self.order      = None
+        self.start_cash  = 0
+        self.start_value = 0
+        self.time_period = None
+        self.order       = None
         return
 
     def get_elapsed_time(self, start_time: float) -> str:
@@ -59,7 +46,7 @@ class BuyAndHold(bt.Strategy):
 
     def nextstart(self) -> None:
         self.print_ohlc()
-        quantity_to_buy = int(self.start_cash / self.data.high[0])
+        quantity_to_buy = self.start_cash / self.data.close[0]
         self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
         return
 
@@ -90,20 +77,20 @@ class BuyAndHold(bt.Strategy):
         return
 
     def stop(self) -> None:
-        time_elapsed = self.get_elapsed_time(self.start_time)
+        total_value = self.broker.get_value()
+        profit      = total_value - self.start_cash
+        roi         = ((total_value / self.start_cash) - 1.0) * 100
+        roi         = '{:.2f}%'.format(roi)
 
-        total_value  = round(self.broker.get_value()+self.broker.get_cash(), 2)
-        profit       = round(total_value - self.start_cash, 2)
-        roi          = ((total_value / self.start_cash) - 1.0) * 100
-        roi          = '{:.2f}%'.format(roi)
+        profit           = self.money_format(round(profit, 2))
+        self.start_value = self.money_format(round(self.start_value, 2))
+        total_value      = self.money_format(round(total_value, 2))
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
-        print(f"Time Elapsed:           {time_elapsed}")
         print(f"Time period:           {self.time_period}")
-
-        print(f"Total Profit:          {self.money_format(profit)}")
+        print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")
-        print(f"Start Portfolio Value: {self.money_format(self.start_value)}")
-        print(f"Final Portfolio Value: {self.money_format(total_value)}")
+        print(f"Start Portfolio Value: {self.start_value}")
+        print(f"Final Portfolio Value: {total_value}")
         return

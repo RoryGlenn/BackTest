@@ -407,23 +407,22 @@ class DCA():
         return
     
     def reset(self) -> None:
-        self.deviation_percent_levels = []
-        self.safety_order_quantity_levels = []
-        self.total_quantity_levels = []
+        self.deviation_percent_levels         = []
+        self.safety_order_quantity_levels     = []
+        self.total_quantity_levels            = []
         self.safety_order_quantity_levels_usd = []
-        self.total_quantity_levels_usd = []
-        self.price_levels = []
-        self.weighted_average_price_levels = []
-        self.required_price_levels = []
-        self.required_change_percent_levels = []
-        self.profit_levels = []
-        self.safety_order_roi_levels = []
+        self.total_quantity_levels_usd        = []
+        self.price_levels                     = []
+        self.weighted_average_price_levels    = []
+        self.required_price_levels            = []
+        self.required_change_percent_levels   = []
+        self.profit_levels                    = []
+        self.safety_order_roi_levels          = []
         return
 
     def print_table(self) -> None:
         print(self.df)
         return
-
 
     def optimize(self) -> None:
         # if the last safety order uses all of our cash within a 1% deviation
@@ -459,6 +458,7 @@ class DCA():
             print(self.total_quantity_levels_usd)
 
         self.base_order_size_usd = self.safety_order_size_usd * 2
+        self.safety_order_size   = self.safety_order_size_usd / self.entry_price_usd
         return
 
 

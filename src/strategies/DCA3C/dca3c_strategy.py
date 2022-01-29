@@ -7,16 +7,20 @@ import time
 
 class DCA3C(bt.Strategy):
 
-    """
-    All parameters must have
-        1. 50% deviation from base order on final safety order
-        2. Use all funds on last safety order
-    
-    
-    """
-
     ############################################################################################
-    # SCALP7  $1,000 start -> 2.8% ROI
+    """
+    SCALP7 $10,000 start
+        period 1: 2.03%
+        period 2: 2.49%
+        period 3: 1.10%
+        period 4: 2.03%
+        period 5: 1.42%
+        period 6: 0.43%
+        period 7: 0.06%
+        period 8: 0.49%
+        period 9: 0.24%
+
+    """
     # params = (
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -25,16 +29,23 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_volume_scale',    2.5),
     #     ('safety_order_step_scale',      1.56),
     #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          8),
+    #     ('base_order_size_usd',          20),
     #     ('safety_order_size_usd',        4)
     # )
 
     ############################################################################################
     
     """
-    SCALP 15 $1,000 start
-        period1: 8.89% ROI
-        period2: 2.59%
+    SCALP 15 
+        period 1:
+        period 2:
+        period 3:
+        period 4:
+        period 5:
+        period 6:
+        period 7:
+        period 8:
+        period 9:    
     """
     params = (
         ('target_profit_percent',        1),
@@ -44,16 +55,23 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    1.2),
         ('safety_order_step_scale',      1.16),
         ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          26),
-        ('safety_order_size_usd',        13)
+        ('base_order_size_usd',          20),
+        ('safety_order_size_usd',        10)
     )
 
     ############################################################################################
 
     """
-    SCALP20 $1,000 start
-        period1: 8.13% ROI
-        period2: 6.25% ROI
+    SCALP20 
+        period 1:
+        period 2:
+        period 3:
+        period 4:
+        period 5:
+        period 6:
+        period 7:
+        period 8:
+        period 9:    
     """
     # params = (
     #     ('target_profit_percent',        1),
@@ -63,13 +81,25 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_volume_scale',    1.2),
     #     ('safety_order_step_scale',      1.05),
     #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          38),
-    #     ('safety_order_size_usd',        19)
+    #     ('base_order_size_usd',          20),
+    #     ('safety_order_size_usd',        10)
     # )
 
     ############################################################################################
     
-    # SCALP26 $1,000 start -> 3.31% ROI
+    """
+    SCALP26 
+        period 1:
+        period 2:
+        period 3:
+        period 4:
+        period 5:
+        period 6:
+        period 7:
+        period 8:
+        period 9:
+
+    """
     # params = (
     #     ('target_profit_percent',        1),
     #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -78,8 +108,8 @@ class DCA3C(bt.Strategy):
     #     ('safety_order_volume_scale',    1.2),
     #     ('safety_order_step_scale',      1.05),
     #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          5.5),
-    #     ('safety_order_size_usd',        2.75)
+    #     ('base_order_size_usd',          20),
+    #     ('safety_order_size_usd',        10)
     # )
 
     ############################################################################################
@@ -100,6 +130,8 @@ class DCA3C(bt.Strategy):
     def __init__(self) -> None:
         self.take_profit_price = 0.0
         self.stop_limit_price  = 0.0
+
+        self.safety_order_sizes = list()
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -204,6 +236,8 @@ class DCA3C(bt.Strategy):
                                     safety_order_size=safety_order_size,
                                     total_usd=self.broker.get_cash()
                                 )
+                    
+                    self.safety_order_sizes.append(self.dca.safety_order_size_usd)
 
                     take_profit_price = self.dca.base_order_required_price
 
@@ -326,9 +360,22 @@ class DCA3C(bt.Strategy):
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print()
+
+        print('target_profit_percent',        self.params.target_profit_percent)
+        print('trail_percent',                self.params.trail_percent)
+        print('safety_orders_max',            self.params.safety_orders_max)
+        print('safety_orders_active_max',     self.params.safety_orders_max)
+        print('safety_order_volume_scale',    self.params.safety_order_volume_scale)
+        print('safety_order_step_scale',      self.params.safety_order_step_scale)
+        print('safety_order_price_deviation', self.params.safety_order_price_deviation)
+        print('base_order_size_usd',          self.params.base_order_size_usd)
+        print('safety_order_size_usd: optimized')
+
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")
         print(f"Start Portfolio Value: {self.start_value}")
         print(f"Final Portfolio Value: {total_value}")
+
+        print("safety_order_sizes:", self.safety_order_sizes)
         return

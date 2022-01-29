@@ -90,13 +90,6 @@ def bngo() -> None:
 def btc() -> None:
     start_time = time.time()
 
-    # Could there be a way to switch between DCA and lump sum investing?
-        # if we are above the 200MA, lump sum invest. Buy/Sell according to the hull moving average
-        # if we are below the 200MA DCA?
-
-        # what other indicators are there for a bull/bear market?
-
-
     """
         periods 1-3: bear markets
         periods 4-6: bull markets
@@ -105,13 +98,17 @@ def btc() -> None:
     """
 
     """
-    To incorporate MA_200_Day, HullMA_20_Day for bull markets and DCA for bear markets,
-    we need to figure out how to calculate a MA_200_Day while simultaneously calculating the HullMA_20_Day.
+        To incorporate MA_200_Day, HullMA_20_Day for bull markets and DCA for bear markets,
+        we need to figure out how to calculate a MA_200_Day while simultaneously calculating the HullMA_20_Day.
 
-    2 different indicators using 2 different number of days.
+        2 different indicators using 2 different number of days.
     
     
     """
+    FILE       = BTC_USD_2021
+    start_date = datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2021, month=12, day=31, hour=0, minute=1)
+
 
     # period 1: (4/14/2021 - 7/21/21)
     # FILE       = BTC_USD_2021
@@ -139,9 +136,9 @@ def btc() -> None:
     # end_date   = datetime.datetime(year=2021, month=4, day=15, hour=0, minute=1)
 
     # period 6: (7/20/2021 -> 9/5/2021)
-    FILE       = BTC_USD_2021
-    start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
+    # FILE       = BTC_USD_2021
+    # start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
 
     # period 7: 5/9/21 -> 9/9/21
     # FILE       = BTC_USD_2020
@@ -201,6 +198,7 @@ def btc() -> None:
     cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
 
     cerebro.adddata(data, name='BTCUSD') # adding a name while using bokeh will avoid plotting error
+    cerebro.resampledata(data, timeframe=bt.TimeFrame.Days)
     cerebro.addstrategy(DCA3C)
 
     # adding observers
@@ -216,18 +214,18 @@ def btc() -> None:
     cerebro.addanalyzer(bt.analyzers.DrawDown)
     cerebro.addanalyzer(bt.analyzers.SQN)
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
-    # cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
 
     print("\n^^^^ STARTING THE BACKTEST ^^^^^")
     
     # cerebro.run(runonce=False)
     cerebro.run()
 
+
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
-    b = Bokeh(style='bar', filename='backtest_results/testgraph.html', output_mode='show', scheme=Blackly())
-
-    cerebro.plot(b)
+    # b = Bokeh(style='bar', filename='backtest_results/testgraph.html', output_mode='show', scheme=Blackly())
+    # cerebro.plot(b)
+    cerebro.plot() # if the current test fails, run it like this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     return
 
 

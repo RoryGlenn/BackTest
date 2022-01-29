@@ -3,8 +3,8 @@ from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
 
-# Fractional Sizes
-# https://www.backtrader.com/blog/posts/2019-08-29-fractional-sizes/fractional-sizes/
+
+
 
 class DCA3C(bt.Strategy):
     # lines = ('HullMA_20_Day', 'sma')
@@ -42,7 +42,7 @@ class DCA3C(bt.Strategy):
     ############################################################################################
     
     """
-    SCALP 15 
+    SCALP 15
         period 1: 6.97%
         period 2: 2.64%
         period 3: 3.23% (bear market AVG 4.28%)
@@ -111,13 +111,12 @@ class DCA3C(bt.Strategy):
         period 3: 1.01%
         period 4: 2.08%
         period 5: 1.30%
-        period 6: 
-        period 7:
-        period 8:
-        period 9:
+        period 6: 0.44%
+        period 7: 0.35%
+        period 8: 0.45%
+        period 9: 0.24%
 
         period 10: ??? (ALL)
-
 
     """
     params = (
@@ -148,32 +147,28 @@ class DCA3C(bt.Strategy):
 
         period 10: ??? (ALL)
 
-    
     """
-
 
     ############################################################################################
 
     def __init__(self) -> None:
         # if you use this, you will need a warm up
-        # self.sma = bt.indicators.MovingAverageSimple(self.data, period=28800)
+        self.hullma_20_day = bt.indicators.HullMovingAverage(self.data, period=30240)  # 21 day warm up
+        self.ma_200_day    = bt.indicators.HullMovingAverage(self.data, period=289440) # 201 day warm up
 
-        self.take_profit_price = 0.0
-        self.stop_limit_price  = 0.0
-
-        # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
-        self.take_profit_order = None
-        
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
         self.safety_orders         = []
 
+        # Store the take profit order so we can cancel and update take profit price with every filled safety order
+        self.take_profit_order = None
+        
         self.dca                   = None
+        self.time_period           = None
         self.is_first_safety_order = True
+
         self.start_cash            = 0
         self.start_value           = 0
-        self.time_period           = None
         return
-
 
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
@@ -309,8 +304,6 @@ class DCA3C(bt.Strategy):
                 self.safety_orders         = []
                 self.take_profit_order     = None
                 self.is_first_safety_order = True
-                self.take_profit_price     = 0.0
-                self.stop_limit_price      = 0.0
         elif order.status in [order.Canceled]:
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
             if order.issell():

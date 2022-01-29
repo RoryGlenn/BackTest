@@ -17,3 +17,15 @@
 
 Machine learning with DCA?
 ML knows what settings to use depending on what market condition we are in (bull vs bear?)
+
+
+# Fractional Sizes
+# https://www.backtrader.com/blog/posts/2019-08-29-fractional-sizes/fractional-sizes/
+
+
+Could there be a way to switch between DCA and lump sum investing?
+    if we are above the 200MA, lump sum invest. Buy/Sell according to the hull moving average
+    if we are below the 200MA DCA?
+
+    what other indicators are there for a bull/bear market?
+

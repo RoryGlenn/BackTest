@@ -89,7 +89,10 @@ def bngo() -> None:
 def btc() -> None:
     start_time = time.time()
 
-    ########################################## COMPARE THE VALUES BELOW WITH A BUY AND HOLD STRATEGY ##########################################
+    # could there be a way to switch between DCA and lump sum investing?
+    # if we are above the 200MA, lump sum invest. Buy/Sell according to the hull moving average
+    # if we are below, DCA?
+
 
     """
         periods 1-3: bear markets
@@ -99,9 +102,9 @@ def btc() -> None:
     """
 
     # period 1: (4/14/2021 - 7/21/21)
-    FILE       = BTC_USD_2021
-    start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
+    # FILE       = BTC_USD_2021
+    # start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
 
     # period 2: (1/7/2018 - 4/1/2018)
     # FILE       = BTC_USD_2018
@@ -129,9 +132,9 @@ def btc() -> None:
     # end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
 
     # period 7: 5/9/21 -> 9/9/21
-    # FILE       = BTC_USD_2020
-    # start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
-    # end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
+    FILE       = BTC_USD_2020
+    start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
 
     # period 8: 5/9/21 -> 9/9/21
     # FILE       = BTC_USD_2019

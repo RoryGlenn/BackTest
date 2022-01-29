@@ -119,13 +119,13 @@ class DCA3C(bt.Strategy):
 
     """
     BUY & HOLD
-        period 1:
-        period 2:
-        period 3:
-        period 4:
-        period 5:
-        period 6:
-        period 7:
+        period 1: -53.19%
+        period 2: -59.49%
+        period 3: -24.28%
+        period 4: 399.52%
+        period 5: 106.58%
+        period 6: 61.47%
+        period 7: 3.47%
         period 8:
         period 9:
     

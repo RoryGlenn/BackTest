@@ -45,8 +45,7 @@ class BuyAndHold(bt.Strategy):
         return
 
     def nextstart(self) -> None:
-        self.print_ohlc()
-        quantity_to_buy = self.start_cash / self.data.close[0]
+        quantity_to_buy = (self.start_cash-10) / self.data.close[0]
         self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
         return
 

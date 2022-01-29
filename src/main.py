@@ -220,7 +220,6 @@ def btc() -> None:
     # cerebro.run(runonce=False)
     cerebro.run()
 
-
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
     # b = Bokeh(style='bar', filename='backtest_results/testgraph.html', output_mode='show', scheme=Blackly())

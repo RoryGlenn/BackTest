@@ -7,8 +7,6 @@ import backtrader as bt
 
 
 class DCA3C(bt.Strategy):
-    # lines = ('HullMA_20_Day', 'sma')
-
     ############################################################################################
     """
     SCALP7 $10,000 start

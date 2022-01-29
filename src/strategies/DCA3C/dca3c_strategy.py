@@ -44,8 +44,8 @@ class DCA3C(bt.Strategy):
         ('safety_order_volume_scale',    1.2),
         ('safety_order_step_scale',      1.16),
         ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          20),
-        ('safety_order_size_usd',        10)
+        ('base_order_size_usd',          26),
+        ('safety_order_size_usd',        13)
     )
 
     ############################################################################################
@@ -192,8 +192,6 @@ class DCA3C(bt.Strategy):
                     # If the cost of the stock/coin is larger than our base order size, 
                     # then we can't order in integer sizes. We must order in fractional sizes                    
                     safety_order_size = size//entry_price if size//entry_price != 0 else size/entry_price
-
-                    print(self.broker.get_cash())
 
                     self.dca = DCA( entry_price_usd=entry_price,
                                     target_profit_percent=self.params.target_profit_percent,

@@ -2,7 +2,7 @@ from strategies.DCA3C.dca3c_strategy import DCA
 from strategies.DCA3C.dca3c_strategy import DCA3C
 from strategies.DCA3C.dca_dynamic    import DCADynamic
 
-from strategies.buy_and_hold   import BuyAndHold
+from strategies.buy_and_hold         import BuyAndHold
 from observers.stop_take             import SLTPTracking
 
 from backtrader_plotting             import Bokeh, OptBrowser
@@ -91,23 +91,23 @@ def btc() -> None:
     3 good periods
     """
 
+    # # just for testing optimization
+    # start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2018, month=1, day=8, hour=0, minute=1)
+
     # period 1: (4/14/2021 - 7/21/21)
     start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
     end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
 
     # period 2: (1/7/2018 - 4/1/2018)
-    start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
-
-    # just for testing optimization
-    start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2018, month=1, day=8, hour=0, minute=1)
+    # start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
 
 
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_str   = end_date.strftime("%Y-%m-%d %H:%M:%S")
 
-    df = pd.read_csv(BTC_USD_2018,
+    df = pd.read_csv(BTC_USD_2021,
                      low_memory=False,
                      usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
                      parse_dates=True,
@@ -202,8 +202,44 @@ if __name__ == '__main__':
     os.system("cls")
     os.system("color")
 
-    # oracle()
-    # bngo()
+    # dca = DCA( entry_price_usd=63661.29,
+    #             target_profit_percent=1,
+    #             safety_orders_max=15,
+    #             safety_orders_active_max=15,
+    #             safety_order_volume_scale=1.2,
+    #             safety_order_step_scale=1.16,
+    #             safety_order_price_deviation_percent=1,
+    #             base_order_size_usd=26,
+    #             safety_order_size_usd=13
+    #             # total_usd=self.broker.get_cash()
+    #         )
+    # dca.print_table()
+
+    # sys.exit()
+
     btc()
 
 
+
+
+"""
+NOT OPTIMIZED
+Time period:           98 days, 0:00:00
+Total Profit:          $60.840000
+ROI:                   6.08%
+Start Portfolio Value: $1,000.000000
+Final Portfolio Value: $1,060.840000
+Time elapsed: 2 minutes 45 seconds
+
+
+
+###########################################################
+OPTIMIZED
+Time period:           98 days, 0:00:00
+Total Profit:          $69.900000
+ROI:                   6.99%
+Start Portfolio Value: $1,000.000000
+Final Portfolio Value: $1,069.900000
+Time elapsed: 2 minutes 56 seconds
+
+"""

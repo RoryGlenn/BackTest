@@ -21,12 +21,13 @@ ONE_MILLION  = 1000000
 TEN_THOUSAND = 10000
 ONE_THOUSAND = 1000
 
-BTC_USD_ALL  = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
 BTC_USD_2017 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2017_1min.csv"
 BTC_USD_2018 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2018_1min.csv"
 BTC_USD_2019 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2019_1min.csv"
 BTC_USD_2020 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2020_1min.csv"
 BTC_USD_2021 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2021_1min.csv"
+BTC_USD_ALL  = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
+
 ORACLE       = "historical_data/stocks/oracle.csv"
 BNGO         = "historical_data/stocks/BNGO.csv"
 FILE         = ""
@@ -89,9 +90,11 @@ def bngo() -> None:
 def btc() -> None:
     start_time = time.time()
 
-    # could there be a way to switch between DCA and lump sum investing?
-    # if we are above the 200MA, lump sum invest. Buy/Sell according to the hull moving average
-    # if we are below, DCA?
+    # Could there be a way to switch between DCA and lump sum investing?
+        # if we are above the 200MA, lump sum invest. Buy/Sell according to the hull moving average
+        # if we are below the 200MA DCA?
+
+        # what other indicators are there for a bull/bear market?
 
 
     """
@@ -132,9 +135,9 @@ def btc() -> None:
     # end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
 
     # period 7: 5/9/21 -> 9/9/21
-    FILE       = BTC_USD_2020
-    start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
+    # FILE       = BTC_USD_2020
+    # start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
 
     # period 8: 5/9/21 -> 9/9/21
     # FILE       = BTC_USD_2019
@@ -146,7 +149,10 @@ def btc() -> None:
     # start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
 
-
+    # period 10: 1/1/2016 -> 1/26/2022
+    FILE       = BTC_USD_ALL
+    start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
     ##############################################################################
 
 
@@ -182,9 +188,9 @@ def btc() -> None:
     cerebro.broker.set_cash(TEN_THOUSAND)
     cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
 
-    cerebro.adddata(data, name='BTC/USD-ALL') # adding a name while using bokeh will avoid plotting error
-    # cerebro.addstrategy(DCA3C)
-    cerebro.addstrategy(BuyAndHold)
+    cerebro.adddata(data, name='BTCUSD') # adding a name while using bokeh will avoid plotting error
+    cerebro.addstrategy(DCA3C)
+    # cerebro.addstrategy(BuyAndHold)
 
     # adding analyzers
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Months)
@@ -201,7 +207,7 @@ def btc() -> None:
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
     b = Bokeh(style='bar',
-              filename='backtest_results/Scalp20_period2.html',
+              filename='backtest_results/Scalp7_ALL.html',
               output_mode='show',
               scheme=Blackly())
     cerebro.plot(b)

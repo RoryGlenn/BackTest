@@ -13,12 +13,16 @@ class DCA3C(bt.Strategy):
         period 1: 2.03%
         period 2: 2.49%
         period 3: 1.10%
+
         period 4: 2.03%
         period 5: 1.42%
         period 6: 0.43%
+        
         period 7: 0.06%
         period 8: 0.49%
         period 9: 0.24%
+
+        period 10: ??? (ALL)
 
     """
     # params = (
@@ -48,33 +52,40 @@ class DCA3C(bt.Strategy):
         period 7: 0.95%
         period 8: 1.72%
         period 9: 0.88% (sideways market AVG 1.183%)
+
+        period 10: ??? (ALL)
     """
 
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            15),
-    #     ('safety_orders_active_max',     15),
-    #     ('safety_order_volume_scale',    1.2),
-    #     ('safety_order_step_scale',      1.16),
-    #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          20),
-    #     ('safety_order_size_usd',        10)
-    # )
+    params = (
+        ('target_profit_percent',        1),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('safety_orders_max',            15),
+        ('safety_orders_active_max',     15),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.16),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          20),
+        ('safety_order_size_usd',        10)
+    )
 
     ############################################################################################
 
     """
     SCALP20 
-        period 1:
-        period 2:
-        period 3:
-        period 4:
-        period 5:
-        period 6:
-        period 7:
-        period 8:
-        period 9:    
+        period 1: 5.58%
+        period 2: 4.20%
+        period 3: 2.75%
+
+        period 4: 2.75%
+        period 5: 3.37%
+        period 6: 0.99%
+
+        period 7: 0.76%
+        period 8: 1.14%
+        period 9: 0.59%
+
+        period 10: ??? (ALL)
+
     """
     # params = (
     #     ('target_profit_percent',        1),
@@ -102,6 +113,9 @@ class DCA3C(bt.Strategy):
         period 8:
         period 9:
 
+        period 10: ??? (ALL)
+
+
     """
     # params = (
     #     ('target_profit_percent',        1),
@@ -126,8 +140,11 @@ class DCA3C(bt.Strategy):
         period 5: 106.58%
         period 6: 61.47%
         period 7: 3.47%
-        period 8:
-        period 9:
+        period 8: 42.69%
+        period 9: 10.87%
+
+        period 10: ??? (ALL)
+
     
     """
 
@@ -176,7 +193,7 @@ class DCA3C(bt.Strategy):
         high    = self.money_format(self.data.high[0])
         low     = self.money_format(self.data.low[0])
         close   = self.money_format(self.data.close[0])
-        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}\n")
+        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
         return
 
     def set_take_profit(self) -> None:
@@ -355,7 +372,6 @@ class DCA3C(bt.Strategy):
         return
 
     def next(self) -> None:
-        print("\n-> NEXT ->")
         self.print_ohlc()
 
         if len(self.safety_orders) == 0:

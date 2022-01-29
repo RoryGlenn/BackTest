@@ -2,10 +2,12 @@ from __future__           import (absolute_import, division, print_function, uni
 from strategies.DCA3C.dca import DCA
 
 import backtrader as bt
-import time
 
+# Fractional Sizes
+# https://www.backtrader.com/blog/posts/2019-08-29-fractional-sizes/fractional-sizes/
 
 class DCA3C(bt.Strategy):
+    # lines = ('HullMA_20_Day', 'sma')
 
     ############################################################################################
     """
@@ -53,7 +55,7 @@ class DCA3C(bt.Strategy):
         period 8: 1.72%
         period 9: 0.88% (sideways market AVG 1.183%)
 
-        period 10: ??? (ALL)
+        period 10: 174.57% (ALL)
     """
 
     params = (
@@ -67,6 +69,7 @@ class DCA3C(bt.Strategy):
         ('base_order_size_usd',          20),
         ('safety_order_size_usd',        10)
     )
+
 
     ############################################################################################
 
@@ -103,12 +106,12 @@ class DCA3C(bt.Strategy):
     
     """
     SCALP26 
-        period 1:
-        period 2:
-        period 3:
-        period 4:
-        period 5:
-        period 6:
+        period 1: 2.33%
+        period 2: 1.73%
+        period 3: 1.01%
+        period 4: 2.08%
+        period 5: 1.30%
+        period 6: 
         period 7:
         period 8:
         period 9:
@@ -117,17 +120,17 @@ class DCA3C(bt.Strategy):
 
 
     """
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            26),
-    #     ('safety_orders_active_max',     26),
-    #     ('safety_order_volume_scale',    1.2),
-    #     ('safety_order_step_scale',      1.05),
-    #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          20),
-    #     ('safety_order_size_usd',        10)
-    # )
+    params = (
+        ('target_profit_percent',        1),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('safety_orders_max',            26),
+        ('safety_orders_active_max',     26),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.05),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          20),
+        ('safety_order_size_usd',        10)
+    )
 
     ############################################################################################
 
@@ -151,24 +154,12 @@ class DCA3C(bt.Strategy):
 
     ############################################################################################
 
-
-    def log(self, txt: str, dt=None) -> None:
-        ''' Logging function fot this strategy'''
-        dt      = dt or self.data.datetime[0]
-        minutes = self.datas[0].datetime.time(0)
-
-        if isinstance(dt, float):
-            dt = bt.num2date(dt)
-
-        _dt = dt.isoformat().split("T")[0]
-        print('%s, %s' % (_dt, txt))
-        return
-
     def __init__(self) -> None:
+        # if you use this, you will need a warm up
+        # self.sma = bt.indicators.MovingAverageSimple(self.data, period=28800)
+
         self.take_profit_price = 0.0
         self.stop_limit_price  = 0.0
-
-        # self.safety_order_sizes = list()
 
         # Store the sell order (take profit) so we can cancel and update tp price with ever filled SO
         self.take_profit_order = None
@@ -181,6 +172,19 @@ class DCA3C(bt.Strategy):
         self.start_cash            = 0
         self.start_value           = 0
         self.time_period           = None
+        return
+
+
+    def log(self, txt: str, dt=None) -> None:
+        ''' Logging function fot this strategy'''
+        dt      = dt or self.data.datetime[0]
+        minutes = self.datas[0].datetime.time(0)
+
+        if isinstance(dt, float):
+            dt = bt.num2date(dt)
+
+        _dt = dt.isoformat().split("T")[0]
+        print('%s, %s' % (_dt, txt))
         return
 
     def money_format(self, money: float) -> str:
@@ -196,7 +200,7 @@ class DCA3C(bt.Strategy):
         print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
         return
 
-    def set_take_profit(self) -> None:
+    def __set_take_profit(self) -> None:
         if self.take_profit_order is None:
             return
 
@@ -274,8 +278,6 @@ class DCA3C(bt.Strategy):
                                     total_usd=self.broker.get_cash()
                                 )
                     
-                    # self.safety_order_sizes.append(self.dca.safety_order_size_usd)
-
                     take_profit_price = self.dca.base_order_required_price
 
                     # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
@@ -295,8 +297,6 @@ class DCA3C(bt.Strategy):
                                                 oco=self.take_profit_order) # oco = One Cancel Others
 
                     self.safety_orders.append(safety_order)
-
-                    # self.dca.print_table()
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -314,7 +314,7 @@ class DCA3C(bt.Strategy):
         elif order.status in [order.Canceled]:
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
             if order.issell():
-                self.set_take_profit()
+                self.__set_take_profit()
             elif order.isbuy():
                 self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
@@ -350,13 +350,7 @@ class DCA3C(bt.Strategy):
                 print()
         return
 
-    # def notify_cashvalue(self, cash, value) -> None:
-    #     return
-
-    # def notify_fund(self, cash, value, fundvalue, shares) -> None:
-    #     return
-
-    def start_new_deal(self) -> None:
+    def __start_new_deal(self) -> None:
         print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
@@ -375,13 +369,16 @@ class DCA3C(bt.Strategy):
         self.print_ohlc()
 
         if len(self.safety_orders) == 0:
-            self.start_new_deal()
+            self.__start_new_deal()
         return
 
     def start(self) -> None:
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
+
+        # print("minperiod: ", self._minperiod)
+        # print("minperiods:", self._minperiods)
         return
 
     def stop(self) -> None:
@@ -412,6 +409,4 @@ class DCA3C(bt.Strategy):
         print(f"ROI:                   {roi}")
         print(f"Start Portfolio Value: {self.start_value}")
         print(f"Final Portfolio Value: {total_value}")
-
-        # print("safety_order_sizes:", self.safety_order_sizes)
         return

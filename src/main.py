@@ -104,6 +104,15 @@ def btc() -> None:
 
     """
 
+    """
+    To incorporate MA_200_Day, HullMA_20_Day for bull markets and DCA for bear markets,
+    we need to figure out how to calculate a MA_200_Day while simultaneously calculating the HullMA_20_Day.
+
+    2 different indicators using 2 different number of days.
+    
+    
+    """
+
     # period 1: (4/14/2021 - 7/21/21)
     # FILE       = BTC_USD_2021
     # start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
@@ -130,9 +139,9 @@ def btc() -> None:
     # end_date   = datetime.datetime(year=2021, month=4, day=15, hour=0, minute=1)
 
     # period 6: (7/20/2021 -> 9/5/2021)
-    # FILE       = BTC_USD_2021
-    # start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
-    # end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
+    FILE       = BTC_USD_2021
+    start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
 
     # period 7: 5/9/21 -> 9/9/21
     # FILE       = BTC_USD_2020
@@ -150,14 +159,18 @@ def btc() -> None:
     # end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
 
     # period 10: 1/1/2016 -> 1/26/2022
-    FILE       = BTC_USD_ALL
-    start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
+    # FILE       = BTC_USD_ALL
+    # start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
+    
+    # small testing dates only
+    # FILE       = BTC_USD_2021
+    # start_date = datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1)
+    # end_date   = datetime.datetime(year=2021, month=2, day=1, hour=0, minute=1)
     ##############################################################################
 
-
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
-    end_date_str   = end_date.strftime("%Y-%m-%d %H:%M:%S")
+    end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
 
     df = pd.read_csv(FILE,
                      low_memory=False,
@@ -178,11 +191,10 @@ def btc() -> None:
     print(df)
 
     # BTC/USD
-    data = bt.feeds.PandasData(
-                                dataname=df,
-                                timeframe=bt.TimeFrame.Minutes,
-                                fromdate=start_date,
-                                todate=end_date)
+    data = bt.feeds.PandasData(dataname=df, 
+                            timeframe=bt.TimeFrame.Minutes,
+                            fromdate=start_date,
+                            todate=end_date)
 
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(TEN_THOUSAND)
@@ -190,26 +202,31 @@ def btc() -> None:
 
     cerebro.adddata(data, name='BTCUSD') # adding a name while using bokeh will avoid plotting error
     cerebro.addstrategy(DCA3C)
-    # cerebro.addstrategy(BuyAndHold)
+
+    # adding observers
+    cerebro.addobserver(bt.observers.DrawDown)
+
+    # adding indicators
+    # cerebro.addindicator(bt.indicators.HullMovingAverage, period=28800, plotname="HullMA_20_Day") # 28,800 Minutes = 20 Days
 
     # adding analyzers
     cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Months)
-    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Days)
-    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Minutes)
+    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Months)
+    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Days)
     cerebro.addanalyzer(bt.analyzers.DrawDown)
     cerebro.addanalyzer(bt.analyzers.SQN)
     cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
+    # cerebro.addanalyzer(bt.analyzers.TimeReturn, timeframe=bt.TimeFrame.Days)
 
     print("\n^^^^ STARTING THE BACKTEST ^^^^^")
     
+    # cerebro.run(runonce=False)
     cerebro.run()
 
     print(f"Time elapsed: {get_elapsed_time(start_time)}")
 
-    b = Bokeh(style='bar',
-              filename='backtest_results/Scalp7_ALL.html',
-              output_mode='show',
-              scheme=Blackly())
+    b = Bokeh(style='bar', filename='backtest_results/testgraph.html', output_mode='show', scheme=Blackly())
+
     cerebro.plot(b)
     return
 
@@ -217,23 +234,4 @@ def btc() -> None:
 
 if __name__ == '__main__':
     os.system("cls")
-    os.system("color")
-
-    # dca = DCA( entry_price_usd=63661.29,
-    #             target_profit_percent=1,
-    #             safety_orders_max=7,
-    #             safety_orders_active_max=7,
-    #             safety_order_volume_scale=2.5,
-    #             safety_order_step_scale=1.56,
-    #             safety_order_price_deviation_percent=1.3,
-    #             base_order_size_usd=20,
-    #             safety_order_size_usd=3
-    #             # total_usd=self.broker.get_cash()
-    #         )
-    # dca.print_table()
-    # sys.exit()
-
     btc()
-
-
-

@@ -46,6 +46,7 @@ class BuyAndHold(bt.Strategy):
 
     def nextstart(self) -> None:
         quantity_to_buy = (self.start_cash-10) / self.data.close[0]
+        # self.order_target_percent(target=1)
         self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
         return
 

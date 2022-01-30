@@ -21,16 +21,18 @@ ONE_MILLION  = 1000000
 TEN_THOUSAND = 10000
 ONE_THOUSAND = 1000
 
-BTC_USD_2017 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2017_1min.csv"
-BTC_USD_2018 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2018_1min.csv"
-BTC_USD_2019 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2019_1min.csv"
-BTC_USD_2020 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2020_1min.csv"
-BTC_USD_2021 = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2021_1min.csv"
-BTC_USD_ALL  = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
-
 ORACLE       = "historical_data/stocks/oracle.csv"
 BNGO         = "historical_data/stocks/BNGO.csv"
 FILE         = ""
+
+BTC_USD_1DAY_ALL  = "historical_data/gemini/BTCUSD/gemini_BTCUSD_day.csv"
+BTC_USD_2017_1MIN = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2017_1min.csv"
+BTC_USD_2018_1MIN = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2018_1min.csv"
+BTC_USD_2019_1MIN = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2019_1min.csv"
+BTC_USD_2020_1MIN = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2020_1min.csv"
+BTC_USD_2021_1MIN = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2021_1min.csv"
+BTC_USD_ALL_1MIN  = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
+
 
 
 def get_elapsed_time(start_time: float) -> str:
@@ -105,58 +107,67 @@ def btc() -> None:
     
     
     """
-    FILE       = BTC_USD_2021
+
+    #############################################################################
+    # period 1 ALT: (4/14/2021 - 7/21/21)
+    FILE1       = BTC_USD_2021_1MIN
     start_date = datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1)
-    end_date   = datetime.datetime(year=2021, month=12, day=31, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2021, month=2, day=1, hour=0, minute=1)
+
+    # Day values
+    FILE2       = BTC_USD_1DAY_ALL
+    start_date = datetime.datetime(year=2015, month=10, day=8)
+    end_date   = datetime.datetime(year=2022, month=1, day=28)
+    #############################################################################
 
 
     # period 1: (4/14/2021 - 7/21/21)
-    # FILE       = BTC_USD_2021
+    # FILE1       = BTC_USD_2021
     # start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
 
     # period 2: (1/7/2018 - 4/1/2018)
-    # FILE       = BTC_USD_2018
+    # FILE1       = BTC_USD_2018
     # start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
 
     # period 3: (7/1/2019 - 11/19/2019)
-    # FILE       = BTC_USD_2019
+    # FILE1       = BTC_USD_2019
     # start_date = datetime.datetime(year=2019, month=7, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2019, month=11, day=19, hour=0, minute=1)
 
     # period 4: (7/1/2017 - 11/19/2017)
-    # FILE       = BTC_USD_2017
+    # FILE1       = BTC_USD_2017
     # start_date = datetime.datetime(year=2017, month=9, day=20, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2017, month=12, day=17, hour=0, minute=1)
 
     # period 5: (1/28/21 - 4/15/21)
-    # FILE       = BTC_USD_2021
+    # FILE1       = BTC_USD_2021
     # start_date = datetime.datetime(year=2021, month=1, day=28, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2021, month=4, day=15, hour=0, minute=1)
 
     # period 6: (7/20/2021 -> 9/5/2021)
-    # FILE       = BTC_USD_2021
+    # FILE1       = BTC_USD_2021
     # start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
 
     # period 7: 5/9/21 -> 9/9/21
-    # FILE       = BTC_USD_2020
+    # FILE1       = BTC_USD_2020
     # start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
 
     # period 8: 5/9/21 -> 9/9/21
-    # FILE       = BTC_USD_2019
+    # FILE1       = BTC_USD_2019
     # start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2019, month=5, day=1, hour=0, minute=1)
 
     # period 9: 1/1/2019 -> 4/1/19
-    # FILE       = BTC_USD_2019
+    # FILE1       = BTC_USD_2019
     # start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
 
     # period 10: 1/1/2016 -> 1/26/2022
-    # FILE       = BTC_USD_ALL
+    # FILE1       = BTC_USD_ALL
     # start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
     # end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
     
@@ -169,7 +180,7 @@ def btc() -> None:
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
     end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
 
-    df = pd.read_csv(FILE,
+    df = pd.read_csv(FILE1,
                      low_memory=False,
                      usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
                      parse_dates=True,
@@ -229,6 +240,91 @@ def btc() -> None:
 
 
 
+
+def btc_bear_bull() -> None:
+    start_time = time.time()
+
+    #############################################################################
+    # period 1 ALT: (4/14/2021 - 7/21/21)
+    FILE1       = BTC_USD_2021_1MIN
+    start_date1 = datetime.datetime(year=2021, month=1, day=1, hour=0, minute=1)
+    end_date1   = datetime.datetime(year=2021, month=4, day=1, hour=0, minute=1)
+
+    # Day values
+    FILE2       = BTC_USD_1DAY_ALL
+    start_date2 = datetime.datetime(year=2015, month=10, day=8)
+    end_date2   = datetime.datetime(year=2022, month=1, day=28)
+    #############################################################################
+
+    df_minute = pd.read_csv(FILE1,
+                     low_memory=False,
+                     usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
+                     parse_dates=True,
+                     skiprows=1)
+    
+    df_day = pd.read_csv(FILE2,
+                     low_memory=False,
+                     usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'],
+                     parse_dates=True,
+                     skiprows=1)
+
+    # reverse the data
+    df_minute = df_minute[::-1]
+    df_day    = df_day[::-1]
+
+    df_minute['Date'] = pd.to_datetime(df_minute['Date']).dt.tz_localize(None)
+    df_minute.set_index('Date', inplace=True)
+
+    df_day['Date'] = pd.to_datetime(df_day['Date']).dt.tz_localize(None)
+    df_day.set_index('Date', inplace=True)
+
+    # BTC/USD
+    data_minute = bt.feeds.PandasData(dataname=df_minute, 
+                                        timeframe=bt.TimeFrame.Minutes,
+                                        fromdate=start_date1,
+                                        todate=end_date1)
+
+    data_day = bt.feeds.PandasData(dataname=df_day, 
+                                    timeframe=bt.TimeFrame.Days,
+                                    fromdate=start_date2,
+                                    todate=end_date2)
+
+    cerebro = bt.Cerebro()
+    cerebro.broker.set_cash(TEN_THOUSAND)
+    cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
+
+    cerebro.adddata(data_minute, name='BTCUSD_MINUTE') # adding a name while using bokeh will avoid plotting error
+    cerebro.adddata(data_day, name='BTCUSD_DAY') # adding a name while using bokeh will avoid plotting error
+    # cerebro.resampledata(data_minute, timeframe=bt.TimeFrame.Days)
+    cerebro.addstrategy(DCA3C)
+
+    # adding observers
+    cerebro.addobserver(bt.observers.DrawDown)
+
+    # adding indicators
+    # cerebro.addindicator(bt.indicators.HullMovingAverage, period=28800, plotname="HullMA_20_Day") # 28,800 Minutes = 20 Days
+
+    # adding analyzers
+    cerebro.addanalyzer(bt.analyzers.SharpeRatio, timeframe=bt.TimeFrame.Months)
+    cerebro.addanalyzer(bt.analyzers.VWR,         timeframe=bt.TimeFrame.Months)
+    cerebro.addanalyzer(bt.analyzers.PeriodStats, timeframe=bt.TimeFrame.Days)
+    cerebro.addanalyzer(bt.analyzers.DrawDown)
+    cerebro.addanalyzer(bt.analyzers.SQN)
+    cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
+
+    print("\n^^^^ STARTING THE BACKTEST ^^^^^")
+    
+    # cerebro.run(runonce=False)
+    cerebro.run()
+
+    print(f"Time elapsed: {get_elapsed_time(start_time)}")
+
+    b = Bokeh(style='bar', filename='backtest_results/testgraph.html', output_mode='show', scheme=Blackly())
+    cerebro.plot(b)
+    # cerebro.plot() # if the current test fails, run it like this!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    return
+
+
 if __name__ == '__main__':
     os.system("cls")
-    btc()
+    btc_bear_bull()

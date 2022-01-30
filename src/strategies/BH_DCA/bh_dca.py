@@ -20,6 +20,16 @@ class DCA3C(bt.Strategy):
     ############################################################################################
 
     def __init__(self) -> None:
+        # if you use this, you will need a warm up
+        # self.hullma_20_day = bt.indicators.HullMovingAverage(self.data, period=30240)  # 21 day warm up
+        # self.ma_200_day    = bt.indicators.HullMovingAverage(self.data, period=289440) # 201 day warm up
+
+        # self.data_minutes = self.datas[0]
+        # self.data_days    = self.datas[1]
+
+        self.hullma_20_day = bt.indicators.HullMovingAverage(self.datas[1], period=20)  # 21 day warm up
+        self.ma_200_day    = bt.indicators.MovingAverageSimple(self.datas[1], period=200) # 201 day warm up
+
         self.count = 0
 
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
@@ -234,6 +244,9 @@ class DCA3C(bt.Strategy):
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
+
+        # print("minperiod: ", self._minperiod)
+        # print("minperiods:", self._minperiods)
         return
 
     def stop(self) -> None:

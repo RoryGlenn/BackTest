@@ -126,3 +126,21 @@ BOT SETTINGS & RESULTS:
             period 7: 0.35%
             period 8: 0.45%
             period 9: 0.24%
+
+
+########################################################
+BUY & HOLD
+
+    ROI
+        period 1: -53.19%
+        period 2: -59.49%
+        period 3: -24.28%
+
+        period 4: 399.52%
+        period 5: 106.58%
+        period 6: 61.47%
+        
+        period 7: 3.47%
+        period 8: 42.69%
+        period 9: 10.87%
+        

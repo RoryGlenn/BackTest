@@ -1,12 +1,23 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
-import time
 from dca        import DCA
 
 import backtrader as bt
 
 
+import time
+import math
+import sys
+
+
+BTCUSD_DECIMAL_PLACES = 5
+
+
 class BHDCA(bt.Strategy):
     params = (
+        ('bh_target_profit_percent', 5),    # 5.0%
+        ('bh_trail_percent',         0.02), # 2.0%
+        
+        # rename all of these to DCA_...
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
         ('safety_orders_max',            15),
@@ -24,28 +35,27 @@ class BHDCA(bt.Strategy):
         self.ma_200_day    = bt.indicators.MovingAverageSimple(self.datas[1], period=200)
 
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
-        self.safety_orders = []
+        self.safety_orders          = []
         self.safety_order_sizes_usd = []
-
+        
         # Store the take profit order so we can cancel and update take profit price with every filled safety order
         self.take_profit_order     = None
         self.dca                   = None
         self.buy_n_hold_order      = None
         self.prev_hullma           = None
         self.time_period           = None
-
+        
         self.is_first_safety_order = True
         self.is_dca                = False
         
         self.start_cash            = 0
         self.start_value           = 0
-        self.prenext_count         = 0
+        self.prenext_count         = 1
         return
 
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
-        dt      = dt or self.data.datetime[0]
-        minutes = self.datas[0].datetime.time(0)
+        dt = dt or self.data.datetime[0]
 
         if isinstance(dt, float):
             dt = bt.num2date(dt)
@@ -53,6 +63,17 @@ class BHDCA(bt.Strategy):
         _dt = dt.isoformat().split("T")[0]
         print('%s, %s' % (_dt, txt))
         return
+
+    def round_decimals_down(self, number: float, decimals: int=2) -> int | float:
+        """Returns a value rounded down to a specific number of decimal places."""
+        if not isinstance(decimals, int):
+            raise TypeError("decimal places must be an integer")
+        elif decimals < 0:
+            raise ValueError("decimal places has to be 0 or more")
+        elif decimals == 0:
+            return math.floor(number)
+        factor = 10 ** decimals
+        return math.floor(number * factor) / factor
 
     def money_format(self, money: float) -> str:
         return "${:,.6f}".format(money)
@@ -64,7 +85,7 @@ class BHDCA(bt.Strategy):
         high    = self.money_format(self.data.high[0])
         low     = self.money_format(self.data.low[0])
         close   = self.money_format(self.data.close[0])
-        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
+        print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}\r", end='')
         return
 
     def __dca_set_take_profit(self) -> None:
@@ -122,11 +143,22 @@ class BHDCA(bt.Strategy):
                 self.log('BUY EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
                 if order.exectype == 0:
-                    if self.is_dca:
-                        """ DCA """
+                    if not self.is_dca:
+                        # buy and hold order
                         entry_price       = order.executed.price
                         base_order_size   = order.executed.size
-                        size              = self.params.safety_order_size_usd
+                        take_profit_price = entry_price + (entry_price * self.params.bh_target_profit_percent/100)
+                        
+                        self.sell(price=take_profit_price,
+                                  size=base_order_size,
+                                  trailpercent=self.params.bh_trail_percent,
+                                  plimit=take_profit_price,
+                                  exectype=bt.Order.StopTrailLimit)
+                    else:
+                        """ DCA """
+                        entry_price     = order.executed.price
+                        base_order_size = order.executed.size
+                        size            = self.params.safety_order_size_usd
 
                         # If the cost of the stock/coin is larger than our base order size, 
                         # then we can't order in integer sizes. We must order in fractional sizes                    
@@ -163,9 +195,6 @@ class BHDCA(bt.Strategy):
                                                     oco=self.take_profit_order) # oco = One Cancel Others
 
                         self.safety_orders.append(safety_order)
-                    else:
-                        """Buy and Hold"""
-                        
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
@@ -193,18 +222,19 @@ class BHDCA(bt.Strategy):
             print()
             print(order)
             print()
-            self.dca.print_table()
-            print()
+            sys.exit()
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.size, order.price, order.value, order.comm))
             print()
             print(order)
             print()
+            sys.exit()
         else:
             self.log("ORDER UNKNOWN: SOMETHNG WENT WRONG!")
             print()
             print(order)
             print()
+            sys.exit()
         return
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
@@ -231,44 +261,51 @@ class BHDCA(bt.Strategy):
         
         buy_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
         self.safety_orders.append(buy_order)
+        self.is_dca = True
+        return
+
+    def __buy_and_hold(self) -> None:
+        if self.hullma_20_day[0] > self.prev_hullma: # moving upwards (sell -> buy)
+            if self.position.size == 0:
+                # buy if we don't have a position
+                base_order_size       = (self.broker.get_cash() - 25) / self.data.close[0]
+                base_order_size       = self.round_decimals_down(base_order_size, BTCUSD_DECIMAL_PLACES)
+                self.buy_n_hold_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
+                self.is_dca           = False
+        elif self.hullma_20_day[0] < self.prev_hullma: # moving downwards (buy -> sell)
+            # sell if we have a position
+            if self.position.size > 0:
+                self.sell(size=self.position.size, exectype=bt.Order.Market) # cancel all open orders and sell immedietly
+                self.buy_n_hold_order = None
+                self.is_dca           = False
         return
 
     def prenext(self) -> None:
-        print(f"Prenext: {self.prenext_count} \\ {self.prenext_total}")
+        print(f"Prenext: {self.prenext_count} \\ {self.prenext_total} {round((self.prenext_count/self.prenext_total)*100)}%\r", end='')
         self.prenext_count += 1
         return
 
     def next(self) -> None:
         self.print_ohlc()
 
-        print("HullMA:", self.hullma_20_day[0])
-        print("MA 20:",  self.ma_200_day[0])
+        """
+            Problem:
+                When using buy and hold, always have a limit order in to sell everything on previous days high?
+                This helps us to lock in our profit on days where there is a large candle downwards,
+        
+        """
 
+        # on first iteration, assign value to prev_hullma
         if self.prev_hullma is None:
             self.prev_hullma = self.hullma_20_day[0]
-            return
 
-        # if the previous days hull moving average is less than or greater than todays hull moving average,
-        # we have changed from buy to sell or sell to buy
-
-        if self.ma_200_day[0] > self.data.close[0]:
+        if self.data.close[0] > self.ma_200_day[0]:
             """Buy & Hold with Hull Moving Average"""
-            if self.hullma_20_day[0] > self.prev_hullma:
-                if self.position.size == 0:
-                    # buy if we are not in the market
-                    base_order_size       = (self.broker.get_cash()-100) / self.data.close[0]
-                    self.buy_n_hold_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
-                    self.is_dca           = False
-            elif self.hullma_20_day[0] < self.prev_hullma:
-                # sell if we have a position
-                if self.position.size > 0:
-                    self.sell(size=self.position.size, exectype=bt.Order.Market)
-                    self.is_dca = False
-        elif self.ma_200_day < self.data.close[0]:
+            self.__buy_and_hold()
+        elif self.data.close[0] < self.ma_200_day[0]:
             """DCA"""
             if len(self.safety_orders) == 0 and self.position.size == 0:
                 self.__dca_start_new_deal()
-                self.is_dca = True
 
         self.prev_hullma = self.hullma_20_day[0]
         return
@@ -300,10 +337,14 @@ class BHDCA(bt.Strategy):
         print('safety_order_step_scale:       ', self.params.safety_order_step_scale)
         print('safety_order_price_deviation:  ', self.params.safety_order_price_deviation)
         print('base_order_size_usd:           ', self.params.base_order_size_usd)
-        print(f'safety_order_sizes_usd:       {min(self.safety_order_sizes_usd)} - {max(self.safety_order_sizes_usd)}')
+
+        if len(self.safety_order_sizes_usd) > 0:
+            if min(self.safety_order_sizes_usd) == max(self.safety_order_sizes_usd):
+                print(f'safety_order_size_usd:          {min(self.safety_order_sizes_usd)}')
+            else:
+                print(f'safety_order_sizes_usd:         {min(self.safety_order_sizes_usd)} - {max(self.safety_order_sizes_usd)}')
 
         print()
-
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")

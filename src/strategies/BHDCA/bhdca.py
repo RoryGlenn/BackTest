@@ -1,11 +1,10 @@
-from __future__           import (absolute_import, division, print_function, unicode_literals)
-from strategies.DCA3C.dca import DCA
+from __future__ import (absolute_import, division, print_function, unicode_literals)
+from dca        import DCA
 
 import backtrader as bt
 
 
-class DCA3C(bt.Strategy):
-    # SCALP 15
+class BHDCA(bt.Strategy):
     params = (
         ('target_profit_percent',        1),
         ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
@@ -20,24 +19,16 @@ class DCA3C(bt.Strategy):
     ############################################################################################
 
     def __init__(self) -> None:
-        # if you use this, you will need a warm up
-        # self.hullma_20_day = bt.indicators.HullMovingAverage(self.data, period=30240)  # 21 day warm up
-        # self.ma_200_day    = bt.indicators.HullMovingAverage(self.data, period=289440) # 201 day warm up
-
-        # self.data_minutes = self.datas[0]
-        # self.data_days    = self.datas[1]
-
-        self.hullma_20_day = bt.indicators.HullMovingAverage(self.datas[1], period=20)  # 21 day warm up
+        self.hullma_20_day = bt.indicators.HullMovingAverage(self.datas[1],   period=20)  # 21 day warm up
         self.ma_200_day    = bt.indicators.MovingAverageSimple(self.datas[1], period=200) # 201 day warm up
 
-        self.count = 0
+        self.prenext_count = 0
 
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
         self.safety_orders = []
 
         # Store the take profit order so we can cancel and update take profit price with every filled safety order
-        self.take_profit_order = None
-        
+        self.take_profit_order     = None
         self.dca                   = None
         self.time_period           = None
         self.is_first_safety_order = True
@@ -71,7 +62,7 @@ class DCA3C(bt.Strategy):
         print(f"[{date} {minutes}] Open: {open}, High: {high}, Low: {low}, Close: {close}")
         return
 
-    def __set_take_profit(self) -> None:
+    def __dca_set_take_profit(self) -> None:
         if self.take_profit_order is None:
             return
 
@@ -177,7 +168,7 @@ class DCA3C(bt.Strategy):
         elif order.status in [order.Canceled]:
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
             if order.issell():
-                self.__set_take_profit()
+                self.__dca_set_take_profit()
             elif order.isbuy():
                 self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
@@ -213,7 +204,7 @@ class DCA3C(bt.Strategy):
                 print()
         return
 
-    def __start_new_deal(self) -> None:
+    def __dca_start_new_deal(self) -> None:
         print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
@@ -229,24 +220,27 @@ class DCA3C(bt.Strategy):
         return
 
     def prenext(self) -> None:
-        print("Prenext count:", self.count) # finished at 48,949
-        self.count += 1
+        print(f"Prenext: {self.prenext_count} \\ {self.prenext_total}") # finished at 286,493
+        self.prenext_count += 1
         return
 
     def next(self) -> None:
         self.print_ohlc()
 
-        if len(self.safety_orders) == 0:
-            self.__start_new_deal()
+        if self.ma_200_day > self.data.close[0]:
+            """buy and hold with hull ma"""
+        else:
+            """DCA"""
+            if len(self.safety_orders) == 0:
+                self.__dca_start_new_deal()
         return
 
     def start(self) -> None:
+        self.prenext_total = max(self._minperiods) * 60 * 24
+
         self.time_period = self.datas[0].p.todate - self.datas[0].p.fromdate
         self.start_cash  = self.broker.get_cash()
         self.start_value = self.broker.get_value()
-
-        # print("minperiod: ", self._minperiod)
-        # print("minperiods:", self._minperiods)
         return
 
     def stop(self) -> None:

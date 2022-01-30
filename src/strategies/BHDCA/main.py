@@ -29,9 +29,9 @@ def get_elapsed_time(start_time: float) -> str:
 def bhdca() -> None:
     start_time = time.time()
 
-    FILE1       = BTC_USD_2021_1MIN
-    start_date1 = datetime.datetime(year=2021, month=1,  day=1,  hour=0, minute=0)
-    end_date1   = datetime.datetime(year=2021, month=12, day=31, hour=23, minute=59)
+    FILE1      = BTC_USD_2021_1MIN
+    start_date = datetime.datetime(year=2021, month=1,  day=1,  hour=0, minute=0)
+    end_date   = datetime.datetime(year=2021, month=12, day=31, hour=23, minute=59)
 
     df = pd.read_csv(FILE1, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1)
     df = df[::-1] # reverse the data
@@ -41,7 +41,7 @@ def bhdca() -> None:
     df.set_index('Date', inplace=True)
 
     # BTC/USD
-    data_minute = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Minutes, fromdate=start_date1, todate=end_date1)
+    data_minute = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Minutes, fromdate=start_date, todate=end_date)
 
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(TEN_THOUSAND)

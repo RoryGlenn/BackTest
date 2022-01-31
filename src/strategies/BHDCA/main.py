@@ -33,7 +33,7 @@ def get_elapsed_time(start_time: float) -> str:
 def bhdca() -> None:
     start_time = time.time()
 
-    start_date = datetime.datetime(year=2021, month=1,  day=1,  hour=0, minute=0)
+    start_date = datetime.datetime(year=2021, month=1,  day=5,  hour=0, minute=0)
     end_date   = datetime.datetime(year=2021, month=12, day=31, hour=23, minute=59)
 
     df = pd.read_csv(BTC_USD_1MIN_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data

@@ -3,7 +3,6 @@ from dca        import DCA
 
 import backtrader as bt
 
-
 import time
 import math
 import sys
@@ -14,9 +13,9 @@ BTCUSD_DECIMAL_PLACES = 5
 
 class BHDCA(bt.Strategy):
     params = (
-        ('bh_target_profit_percent', 1),    # 1%
+        ('bh_target_profit_percent', 1), 
         ('bh_trail_percent',         0.01), # 1%
-        ('bh_stop_percent',          1),    # 1%
+        
 
         # rename all of these to DCA_...
         ('dca_target_profit_percent',        1),
@@ -27,7 +26,7 @@ class BHDCA(bt.Strategy):
         ('dca_safety_order_step_scale',      1.16),
         ('dca_safety_order_price_deviation', 1.0),
         ('dca_base_order_size_usd',          250),
-        ('dca_safety_order_size_usd',        10)
+        ('dca_safety_order_size_usd',        250)
     )
     ############################################################################################
 
@@ -35,7 +34,10 @@ class BHDCA(bt.Strategy):
         self.hullma_20_day = bt.indicators.HullMovingAverage(self.datas[1],   period=20)
         self.ma_200_day    = bt.indicators.MovingAverageSimple(self.datas[1], period=200)
 
-        # Store all the Safety Orders so we can cancel the unfilled ones after TPing
+        # self.hullma = bt.indicators.HullMovingAverage(self.datas[0],   period=20)
+        # self.sma    = bt.indicators.MovingAverageSimple(self.datas[0], period=200)
+
+        # Store all the Safety Orders so we can cancel the unfilled ones
         self.safety_orders          = []
         self.safety_order_sizes_usd = []
 
@@ -135,6 +137,30 @@ class BHDCA(bt.Strategy):
         # print()
         return
 
+    def __dca_start_new_deal(self) -> None:
+        # print("\n*** NEW DEAL ***")
+
+        # BASE ORDER BUY
+        entry_price = self.data.close[0]
+        size        = self.params.dca_base_order_size_usd // entry_price
+
+        # If the cost of the stock/coin is larger than our base order size, 
+        # then we can't order in integer sizes. We must order in fractional sizes
+        base_order_size = size if size != 0 else self.params.dca_base_order_size_usd/entry_price
+        
+        buy_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
+        self.safety_orders.append(buy_order)
+        self.is_dca = True
+        return
+
+    def __buy_and_hold(self) -> None:
+        if self.hullma[0] - self.hullma[-1] > 200: # this 200 number is subject, moving upwards (sell -> buy)
+            entry_price     = self.data.close[0]
+            base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.97
+            self.buy(price=entry_price, size=base_order_size, exectype=bt.Order.Market)
+            self.is_dca     = False
+        return
+
     def notify_order(self, order: bt.order.BuyOrder) -> None:
         if order.status in [order.Submitted, order.Accepted]:
             return
@@ -144,7 +170,7 @@ class BHDCA(bt.Strategy):
                 
                 if order.exectype == 0:
                     if not self.is_dca:
-                        # buy and hold order
+                        """Buy&Hold take profit order"""
                         entry_price       = order.executed.price
                         base_order_size   = order.executed.size
                         take_profit_price = entry_price + (entry_price * self.params.bh_target_profit_percent/100)
@@ -206,7 +232,7 @@ class BHDCA(bt.Strategy):
 
                 if self.is_dca:
                     self.safety_orders         = []
-                    self.dca_take_profit_order     = None
+                    self.dca_take_profit_order = None
                     self.is_first_safety_order = True
                 else:
                     self.bh_take_profit_order = None
@@ -253,37 +279,6 @@ class BHDCA(bt.Strategy):
             #     print()
         return
 
-    def __dca_start_new_deal(self) -> None:
-        # print("\n*** NEW DEAL ***")
-
-        # BASE ORDER BUY
-        entry_price = self.data.close[0]
-        size        = self.params.dca_base_order_size_usd // entry_price
-
-        # If the cost of the stock/coin is larger than our base order size, 
-        # then we can't order in integer sizes. We must order in fractional sizes
-        base_order_size = size if size != 0 else self.params.dca_base_order_size_usd/entry_price
-        
-        buy_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
-        self.safety_orders.append(buy_order)
-        self.is_dca = True
-        return
-
-    def __buy_and_hold(self) -> None:
-        if self.hullma_20_day[0] - self.hullma_20_day[-1] > 200: # # this 200 number is subject, moving upwards (sell -> buy)
-            if self.bh_take_profit_order is None:
-                # buy if we don't have a position
-                entry_price     = self.data.close[0]
-                base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.98
-                self.buy(price=entry_price, size=base_order_size, exectype=bt.Order.Market)
-                self.is_dca     = False
-        elif self.hullma_20_day[0] - self.hullma_20_day[-1] <= 0: # moving downwards (buy -> sell)
-            # sell if we have a position
-            if self.bh_take_profit_order is not None:
-                self.sell(size=self.position.size, exectype=bt.Order.Market, oco=self.bh_take_profit_order) # cancel all open orders and sell immedietly
-                self.is_dca = False
-        return
-
     def prenext(self) -> None:
         print(f"Prenext: {self.prenext_count} \\ {self.prenext_total} {round((self.prenext_count/self.prenext_total)*100)}%\r", end='')
         self.prenext_count += 1
@@ -293,10 +288,10 @@ class BHDCA(bt.Strategy):
         self.print_ohlc()
         current_price = self.data.close[0]
             
-        if current_price > self.ma_200_day[0] and self.bh_take_profit_order is None:
+        if current_price > self.sma[0] and self.bh_take_profit_order is None and len(self.safety_orders) == 0:
             self.__buy_and_hold()
-        elif current_price < self.ma_200_day[0]:
-            if len(self.safety_orders) == 0 and self.bh_take_profit_order is None:
+        elif current_price < self.sma[0]:
+            if len(self.safety_orders) == 0 and self.bh_take_profit_order is None and len(self.safety_orders) == 0:
                 self.__dca_start_new_deal()
         return
 

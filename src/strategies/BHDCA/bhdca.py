@@ -14,19 +14,20 @@ BTCUSD_DECIMAL_PLACES = 5
 
 class BHDCA(bt.Strategy):
     params = (
-        ('bh_target_profit_percent', 5),    # 5.0%
-        ('bh_trail_percent',         0.02), # 2.0%
-        
+        ('bh_target_profit_percent', 1),    # 1%
+        ('bh_trail_percent',         0.01), # 1%
+        ('bh_stop_percent',          1),    # 1%
+
         # rename all of these to DCA_...
-        ('target_profit_percent',        1),
-        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-        ('safety_orders_max',            15),
-        ('safety_orders_active_max',     15),
-        ('safety_order_volume_scale',    1.2),
-        ('safety_order_step_scale',      1.16),
-        ('safety_order_price_deviation', 1.0),
-        ('base_order_size_usd',          20),
-        ('safety_order_size_usd',        10)
+        ('dca_target_profit_percent',        1),
+        ('dca_trail_percent',                0.002), # 0.2%
+        ('dca_safety_orders_max',            15),
+        ('dca_safety_orders_active_max',     15),
+        ('dca_safety_order_volume_scale',    1.2),
+        ('dca_safety_order_step_scale',      1.16),
+        ('dca_safety_order_price_deviation', 1.0),
+        ('dca_base_order_size_usd',          250),
+        ('dca_safety_order_size_usd',        10)
     )
     ############################################################################################
 
@@ -37,13 +38,12 @@ class BHDCA(bt.Strategy):
         # Store all the Safety Orders so we can cancel the unfilled ones after TPing
         self.safety_orders          = []
         self.safety_order_sizes_usd = []
-        
+
         # Store the take profit order so we can cancel and update take profit price with every filled safety order
-        self.take_profit_order     = None
         self.dca                   = None
-        self.buy_n_hold_order      = None
-        self.prev_hullma           = None
         self.time_period           = None
+        self.bh_take_profit_order  = None
+        self.dca_take_profit_order = None
         
         self.is_first_safety_order = True
         self.is_dca                = False
@@ -89,20 +89,20 @@ class BHDCA(bt.Strategy):
         return
 
     def __dca_set_take_profit(self) -> None:
-        if self.take_profit_order is None:
+        if self.dca_take_profit_order is None:
             return
 
-        print("\nCANCELED TAKE PROFIT SELL ORDER")
-        print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}\n")
+        # print("\nCANCELED TAKE PROFIT SELL ORDER")
+        # print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}\n")
 
         safety_order = None
 
         if self.is_first_safety_order:
             self.is_first_safety_order = False
 
-            self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
+            self.dca_take_profit_order = self.sell(price=self.dca.required_price_levels[0],
                                                size=self.dca.total_quantity_levels[0],
-                                               trailpercent=self.params.trail_percent,
+                                               trailpercent=self.params.dca_trail_percent,
                                                plimit=self.dca.required_price_levels[0],
                                                exectype=bt.Order.StopTrailLimit)
             
@@ -111,11 +111,11 @@ class BHDCA(bt.Strategy):
             safety_order = self.buy(price=self.dca.price_levels[0],
                                     size=self.dca.safety_order_quantity_levels[0],
                                     exectype=bt.Order.Limit,
-                                    oco=self.take_profit_order) # oco = One Cancel Others
+                                    oco=self.dca_take_profit_order) # oco = One Cancel Others
         else:
-            self.take_profit_order = self.sell(price=self.dca.required_price_levels[0],
+            self.dca_take_profit_order = self.sell(price=self.dca.required_price_levels[0],
                                                size=self.dca.total_quantity_levels[0],
-                                               trailpercent=self.params.trail_percent,
+                                               trailpercent=self.params.dca_trail_percent,
                                                plimit=self.dca.required_price_levels[0],
                                                exectype=bt.Order.StopTrailLimit)
 
@@ -126,13 +126,13 @@ class BHDCA(bt.Strategy):
                 safety_order = self.buy(price=self.dca.price_levels[0],
                                         size=self.dca.safety_order_quantity_levels[0],
                                         exectype=bt.Order.Limit,
-                                        oco=self.take_profit_order) # oco = One Cancel Others
+                                        oco=self.dca_take_profit_order) # oco = One Cancel Others
 
         self.safety_orders.append(safety_order)
         
-        print("\nNEW TAKE PROFIT ORDER")
-        print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}")
-        print()
+        # print("\nNEW TAKE PROFIT ORDER")
+        # print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}")
+        # print()
         return
 
     def notify_order(self, order: bt.order.BuyOrder) -> None:
@@ -148,72 +148,77 @@ class BHDCA(bt.Strategy):
                         entry_price       = order.executed.price
                         base_order_size   = order.executed.size
                         take_profit_price = entry_price + (entry_price * self.params.bh_target_profit_percent/100)
-                        
-                        self.sell(price=take_profit_price,
-                                  size=base_order_size,
-                                  trailpercent=self.params.bh_trail_percent,
-                                  plimit=take_profit_price,
-                                  exectype=bt.Order.StopTrailLimit)
+
+                        self.bh_take_profit_order = self.sell(price=take_profit_price,
+                                                            size=base_order_size,
+                                                            trailpercent=self.params.bh_trail_percent,
+                                                            plimit=take_profit_price,
+                                                            exectype=bt.Order.StopTrailLimit)
                     else:
                         """ DCA """
                         entry_price     = order.executed.price
                         base_order_size = order.executed.size
-                        size            = self.params.safety_order_size_usd
+                        size            = self.params.dca_safety_order_size_usd
 
-                        # If the cost of the stock/coin is larger than our base order size, 
-                        # then we can't order in integer sizes. We must order in fractional sizes                    
+                        # If the cost of the stock/coin is larger than our base order size,
+                        # then we can't order in integer sizes. We must order in fractional sizes
                         safety_order_size = size//entry_price if size//entry_price != 0 else size/entry_price
 
-                        self.dca = DCA( entry_price_usd=entry_price,
-                                        target_profit_percent=self.params.target_profit_percent,
-                                        safety_orders_max=self.params.safety_orders_max,
-                                        safety_orders_active_max=self.params.safety_orders_active_max,
-                                        safety_order_volume_scale=self.params.safety_order_volume_scale,
-                                        safety_order_step_scale=self.params.safety_order_step_scale,
-                                        safety_order_price_deviation_percent=self.params.safety_order_price_deviation,
-                                        base_order_size=base_order_size,
-                                        safety_order_size=safety_order_size,
-                                        total_usd=self.broker.get_cash()
-                                    )
+                        self.dca = DCA(entry_price_usd=entry_price,
+                                       target_profit_percent=self.params.dca_target_profit_percent,
+                                       safety_orders_max=self.params.dca_safety_orders_max,
+                                       safety_orders_active_max=self.params.dca_safety_orders_active_max,
+                                       safety_order_volume_scale=self.params.dca_safety_order_volume_scale,
+                                       safety_order_step_scale=self.params.dca_safety_order_step_scale,
+                                       safety_order_price_deviation_percent=self.params.dca_safety_order_price_deviation,
+                                       base_order_size=base_order_size,
+                                       safety_order_size=safety_order_size,
+                                       total_usd=self.broker.get_cash())
                         
                         self.safety_order_sizes_usd.append(self.dca.safety_order_size_usd)
 
                         take_profit_price = self.dca.base_order_required_price
 
                         # BASE ORDER SELL (TAKE PROFIT: if this sell is filled, cancel all the other safety orders)
-                        self.take_profit_order = self.sell(price=take_profit_price,
+                        self.dca_take_profit_order = self.sell(price=take_profit_price,
                                                             size=base_order_size,
-                                                            trailpercent=self.params.trail_percent,
+                                                            trailpercent=self.params.dca_trail_percent,
                                                             plimit=take_profit_price,
                                                             exectype=bt.Order.StopTrailLimit)
 
                         """instead of submitting the takeprofit and all safety orders at a single time,
                         submit one safety order and one take profit order until one of them is canceled!"""
                         safety_order = self.buy(price=self.dca.price_levels[0],
-                                                    size=self.dca.safety_order_quantity_levels[0],
-                                                    exectype=bt.Order.Limit,
-                                                    oco=self.take_profit_order) # oco = One Cancel Others
+                                                size=self.dca.safety_order_quantity_levels[0],
+                                                exectype=bt.Order.Limit,
+                                                oco=self.dca_take_profit_order) # oco = One Cancel Others
 
                         self.safety_orders.append(safety_order)
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
-                if self.position.size != 0:
-                    print()
-                    print(self.position)
-                    print()
+                # if self.position.size != 0:
+                #     print()
+                #     print(self.position)
+                #     print()
+                
+                # reset variables
 
-                if self.dca:
-                    # reset variables
+                if self.is_dca:
                     self.safety_orders         = []
-                    self.take_profit_order     = None
+                    self.dca_take_profit_order     = None
                     self.is_first_safety_order = True
+                else:
+                    self.bh_take_profit_order = None
         elif order.status in [order.Canceled]:
             # if the sell was canceled, that means a safety order was filled and its time to put in a new updated take profit order.
-            if order.issell():
-                self.__dca_set_take_profit()
-            elif order.isbuy():
-                self.log(f'BUY ORDER CANCELED: Size: {order.size}')
+            self.log(f'ORDER CANCELED: Size: {order.size}')
+
+            if self.is_dca:
+                if order.issell():
+                    self.__dca_set_take_profit()
+                elif order.isbuy():
+                    self.log(f'BUY ORDER CANCELED: Size: {order.size}')
         elif order.status in [order.Margin]:
             self.log('ORDER MARGIN: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
             print()
@@ -241,23 +246,23 @@ class BHDCA(bt.Strategy):
         if trade.isclosed:
             self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
 
-            if trade.pnl <= 0 or trade.pnlcomm <= 0:
-                print(trade.pnl, trade.pnlcomm)
-                print()
-                print(trade)
-                print()
+            # if trade.pnl <= 0 or trade.pnlcomm <= 0:
+            #     print(trade.pnl, trade.pnlcomm)
+            #     print()
+            #     print(trade)
+            #     print()
         return
 
     def __dca_start_new_deal(self) -> None:
-        print("\n*** NEW DEAL ***")
+        # print("\n*** NEW DEAL ***")
 
         # BASE ORDER BUY
         entry_price = self.data.close[0]
-        size        = self.params.base_order_size_usd // entry_price
+        size        = self.params.dca_base_order_size_usd // entry_price
 
         # If the cost of the stock/coin is larger than our base order size, 
         # then we can't order in integer sizes. We must order in fractional sizes
-        base_order_size = size if size != 0 else self.params.base_order_size_usd/entry_price
+        base_order_size = size if size != 0 else self.params.dca_base_order_size_usd/entry_price
         
         buy_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
         self.safety_orders.append(buy_order)
@@ -265,19 +270,18 @@ class BHDCA(bt.Strategy):
         return
 
     def __buy_and_hold(self) -> None:
-        if self.hullma_20_day[0] > self.prev_hullma: # moving upwards (sell -> buy)
-            if self.position.size == 0:
+        if self.hullma_20_day[0] - self.hullma_20_day[-1] > 200: # # this 200 number is subject, moving upwards (sell -> buy)
+            if self.bh_take_profit_order is None:
                 # buy if we don't have a position
-                base_order_size       = (self.broker.get_cash() - 25) / self.data.close[0]
-                base_order_size       = self.round_decimals_down(base_order_size, BTCUSD_DECIMAL_PLACES)
-                self.buy_n_hold_order = self.buy(size=base_order_size, exectype=bt.Order.Market)
-                self.is_dca           = False
-        elif self.hullma_20_day[0] < self.prev_hullma: # moving downwards (buy -> sell)
+                entry_price     = self.data.close[0]
+                base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.98
+                self.buy(price=entry_price, size=base_order_size, exectype=bt.Order.Market)
+                self.is_dca     = False
+        elif self.hullma_20_day[0] - self.hullma_20_day[-1] <= 0: # moving downwards (buy -> sell)
             # sell if we have a position
-            if self.position.size > 0:
-                self.sell(size=self.position.size, exectype=bt.Order.Market) # cancel all open orders and sell immedietly
-                self.buy_n_hold_order = None
-                self.is_dca           = False
+            if self.bh_take_profit_order is not None:
+                self.sell(size=self.position.size, exectype=bt.Order.Market, oco=self.bh_take_profit_order) # cancel all open orders and sell immedietly
+                self.is_dca = False
         return
 
     def prenext(self) -> None:
@@ -287,27 +291,13 @@ class BHDCA(bt.Strategy):
 
     def next(self) -> None:
         self.print_ohlc()
-
-        """
-            Problem:
-                When using buy and hold, always have a limit order in to sell everything on previous days high?
-                This helps us to lock in our profit on days where there is a large candle downwards,
-        
-        """
-
-        # on first iteration, assign value to prev_hullma
-        if self.prev_hullma is None:
-            self.prev_hullma = self.hullma_20_day[0]
-
-        if self.data.close[0] > self.ma_200_day[0]:
-            """Buy & Hold with Hull Moving Average"""
+        current_price = self.data.close[0]
+            
+        if current_price > self.ma_200_day[0] and self.bh_take_profit_order is None:
             self.__buy_and_hold()
-        elif self.data.close[0] < self.ma_200_day[0]:
-            """DCA"""
-            if len(self.safety_orders) == 0 and self.position.size == 0:
+        elif current_price < self.ma_200_day[0]:
+            if len(self.safety_orders) == 0 and self.bh_take_profit_order is None:
                 self.__dca_start_new_deal()
-
-        self.prev_hullma = self.hullma_20_day[0]
         return
 
     def start(self) -> None:
@@ -329,14 +319,14 @@ class BHDCA(bt.Strategy):
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print("##########################################")
-        print('target_profit_percent:         ', self.params.target_profit_percent)
-        print('trail_percent:                 ', self.params.trail_percent)
-        print('safety_orders_max:             ', self.params.safety_orders_max)
-        print('safety_orders_active_max:      ', self.params.safety_orders_max)
-        print('safety_order_volume_scale:     ', self.params.safety_order_volume_scale)
-        print('safety_order_step_scale:       ', self.params.safety_order_step_scale)
-        print('safety_order_price_deviation:  ', self.params.safety_order_price_deviation)
-        print('base_order_size_usd:           ', self.params.base_order_size_usd)
+        print('target_profit_percent:         ', self.params.dca_target_profit_percent)
+        print('trail_percent:                 ', self.params.dca_trail_percent)
+        print('safety_orders_max:             ', self.params.dca_safety_orders_max)
+        print('safety_orders_active_max:      ', self.params.dca_safety_orders_max)
+        print('safety_order_volume_scale:     ', self.params.dca_safety_order_volume_scale)
+        print('safety_order_step_scale:       ', self.params.dca_safety_order_step_scale)
+        print('safety_order_price_deviation:  ', self.params.dca_safety_order_price_deviation)
+        print('base_order_size_usd:           ', self.params.dca_base_order_size_usd)
 
         if len(self.safety_order_sizes_usd) > 0:
             if min(self.safety_order_sizes_usd) == max(self.safety_order_sizes_usd):

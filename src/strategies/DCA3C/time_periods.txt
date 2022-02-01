@@ -51,7 +51,7 @@ FILE       = BTC_USD_2020
 start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
 end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
 
-# period 8: 5/9/21 -> 9/9/21
+# period 8: 1/1/2019 -> 5/1/2019
 FILE       = BTC_USD_2019
 start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
 end_date   = datetime.datetime(year=2019, month=5, day=1, hour=0, minute=1)

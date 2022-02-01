@@ -31,6 +31,23 @@ def get_elapsed_time(start_time: float) -> str:
 
 
 def bhdca() -> None:
+
+    """
+    
+    Compare our results with the S%P500 8%.
+
+    Can we make more than this in a year for every year?
+
+    Repeat this for each strategy
+        DCA
+        HullMA
+        Buy&Hold
+        BHDCA
+        anything else...
+    
+    """
+
+
     start_time = time.time()
 
     # period 1: (4/14/2021 - 7/21/21)

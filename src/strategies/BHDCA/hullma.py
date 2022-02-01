@@ -78,7 +78,7 @@ class HullMA(bt.Strategy):
             print()
             print(order)
             print()
-            sys.exit()
+            # sys.exit()
         elif order.status in [order.Rejected]:
             self.log('ORDER REJECTED: Size: %.6f Price: %.6f, Cost: %.6f, Comm %.6f' % (
                 order.size, order.price, order.value, order.comm))
@@ -99,11 +99,11 @@ class HullMA(bt.Strategy):
             self.log('TRADE COMPLETE, GROSS %.6f, NET %.6f, Size: %.6f' %
                      (trade.pnl, trade.pnlcomm, trade.size))
 
-            if trade.pnl <= 0 or trade.pnlcomm <= 0:
-                print(trade.pnl, trade.pnlcomm)
-                print()
-                print(trade)
-                print()
+            # if trade.pnl <= 0 or trade.pnlcomm <= 0:
+            #     print(trade.pnl, trade.pnlcomm)
+            #     print()
+            #     print(trade)
+            #     print()
         return
 
     def prenext(self) -> None:
@@ -114,11 +114,11 @@ class HullMA(bt.Strategy):
 
     def next(self) -> None:
         self.print_ohlc()
-        if self.hullma[0] > 0 and self.order is None:
+        if self.hullma[0] - self.hullma[-1] > 0 and self.order is None:
             base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.98
             self.order = self.buy(size=base_order_size, exectype=bt.Order.Market)
-        elif self.hullma[0] < 0 and self.order is not None:
-            self.sell(size=self.position.size, exectype=bt.order.Market)
+        elif self.hullma[0] - self.hullma[-1] < 0 and self.order is not None:
+            self.sell(size=self.position.size, exectype=bt.Order.Market)
         return
 
     def start(self) -> None:
@@ -154,7 +154,7 @@ class HullMA(bt.Strategy):
 
 def get_period(period: int) -> datetime:
     start_date = None
-    end_date = None
+    end_date   = None
     
     if period == 1:
         # period 1: (4/14/2021 - 7/21/21)
@@ -170,29 +170,29 @@ def get_period(period: int) -> datetime:
         end_date   = datetime.datetime(year=2019, month=11, day=19, hour=0, minute=1)
     elif period == 4:
         # period 4: (7/1/2017 - 11/19/2017)
-        start_date = datetime.datetime(year=2017, month=9, day=20, hour=0, minute=1)
-        end_date   = datetime.datetime(year=2017, month=12, day=17, hour=0, minute=1)
-    elif period == 4:
+        start_date = datetime.datetime(year=2017, month=7, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2017, month=11, day=19, hour=0, minute=1)        
+    elif period == 5:
         # period 5: (1/28/21 - 4/15/21)
         start_date = datetime.datetime(year=2021, month=1, day=28, hour=0, minute=1)
         end_date   = datetime.datetime(year=2021, month=4, day=15, hour=0, minute=1)
-    elif period == 5:
+    elif period == 6:
         # period 6: (7/20/2021 -> 9/5/2021)
         start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
         end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
-    elif period == 6:
-        # period 7: 5/9/21 -> 9/9/21
-        start_date = datetime.datetime(year=2020, month=5, day=9, hour=0, minute=1)
-        end_date   = datetime.datetime(year=2020, month=9, day=9, hour=0, minute=1)
     elif period == 7:
-        # period 8: 5/9/21 -> 9/9/21
+        # period 7: 5/9/21 -> 9/9/21
+        start_date = datetime.datetime(year=2021, month=5, day=9, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=9, day=9, hour=0, minute=1)
+    elif period == 8:
+        # period 8: 1/1/2019 -> 5/5/2019
         start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
         end_date   = datetime.datetime(year=2019, month=5, day=1, hour=0, minute=1)
-    elif period == 8:
+    elif period == 9:
         # period 9: 1/1/2019 -> 4/1/19
         start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
         end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
-    elif period == 9:
+    elif period == 10:
         # period 10: 1/1/2016 -> 1/26/2022
         start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
         end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
@@ -205,7 +205,7 @@ def get_period(period: int) -> datetime:
 if __name__ == '__main__':
     os.system('cls')
 
-    start_date, end_date = get_period(1)
+    start_date, end_date = get_period(9)
     start_date -= datetime.timedelta(days=20) # time required to process the 200 day simple moving average
 
     start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")

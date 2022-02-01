@@ -6,8 +6,8 @@ TIME PERIODS:
     periods 7-9: sideways/neutral markets
     period  10:  all
 
-        period 1: 4/14/2021 - 7/21/2021     
-        period 2: 1/7/2018  - 4/1/2018    
+        period 1: 4/14/2021 - 7/21/2021     -21.81%
+        period 2: 1/7/2018  - 4/1/2018      -15.56%
         period 3: 7/1/2019  - 11/19/2019    
 
         period 4: 7/1/2017  - 11/19/2017 

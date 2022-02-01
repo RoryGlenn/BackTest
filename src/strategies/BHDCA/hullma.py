@@ -11,6 +11,7 @@ import backtrader as bt
 import datetime
 import os
 import sys
+import time
 
 BTCUSD_DECIMAL_PLACES = 5
 TEN_THOUSAND          = 10000
@@ -28,6 +29,7 @@ class HullMA(bt.Strategy):
         self.start_value = 0
         self.prenext_count = 1
         self.order = None
+        self.roi = None
         return
 
     def log(self, txt: str, dt=None) -> None:
@@ -132,7 +134,7 @@ class HullMA(bt.Strategy):
         total_value = self.broker.get_value()
         profit = total_value - self.start_cash
         roi = ((total_value / self.start_cash) - 1.0) * 100
-        roi = '{:.2f}%'.format(roi)
+        self.roi = '{:.2f}%'.format(roi)
 
         profit = self.money_format(round(profit, 2))
         self.start_value = self.money_format(round(self.start_value, 2))
@@ -204,43 +206,60 @@ def get_period(period: int) -> datetime:
 
 if __name__ == '__main__':
     os.system('cls')
-
-    start_date, end_date = get_period(9)
-    start_date -= datetime.timedelta(days=20) # time required to process the 200 day simple moving average
-
-    start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
-    end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
-
-    df = pd.read_csv(BTC_USD_1MIN_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data
-    df = df[::-1] # reverse the data
-
-    # to improve start up speed, drop all data outside of testing timeframe
-    df = df.drop(df[df['Date'] < start_date_str].index)
-    df = df.drop(df[df['Date'] > end_date_str].index)
-
-    df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
-    df.set_index('Date', inplace=True)
-
-    print(df)
-
-    data = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Minutes, fromdate=start_date, todate=end_date)
-
-    cerebro = bt.Cerebro()
-    cerebro.broker.set_cash(TEN_THOUSAND)
-    cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
-
-    cerebro.adddata(data, name='BTCUSD_MINUTE') # adding a name while using bokeh will avoid plotting error
-    cerebro.resampledata(data, timeframe=bt.TimeFrame.Days, compression=1, name="BTCUSD_DAY")
     
-    cerebro.addstrategy(HullMA)
+    period_results = dict()
 
-    cerebro.addindicator(bt.indicators.HullMovingAverage, period=20)
+    for period in range(2, 10):
+        start_date, end_date = get_period(period)
+        start_date -= datetime.timedelta(days=20) # time required to process the 200 day simple moving average
 
-    print()
-    print("^^^^ STARTING THE BACKTEST ^^^^^")
-    print()
+        start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+        end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
 
-    cerebro.run()
+        df = pd.read_csv(BTC_USD_1MIN_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data
+        df = df[::-1] # reverse the data
 
-    b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
-    cerebro.plot(b)
+        # to improve start up speed, drop all data outside of testing timeframe
+        df = df.drop(df[df['Date'] < start_date_str].index)
+        df = df.drop(df[df['Date'] > end_date_str].index)
+
+        df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
+        df.set_index('Date', inplace=True)
+
+        print(df)
+
+        data = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Minutes, fromdate=start_date, todate=end_date)
+
+        cerebro = bt.Cerebro()
+        cerebro.broker.set_cash(TEN_THOUSAND)
+        cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
+
+        cerebro.adddata(data, name='BTCUSD_MINUTE') # adding a name while using bokeh will avoid plotting error
+        cerebro.resampledata(data, timeframe=bt.TimeFrame.Days, compression=1, name="BTCUSD_DAY")
+        
+        cerebro.addstrategy(HullMA)
+
+        cerebro.addindicator(bt.indicators.HullMovingAverage, period=20)
+
+        print()
+        print("^^^^ STARTING THE BACKTEST ^^^^^")
+        print()
+
+        the_strat = cerebro.run()
+        the_strat = the_strat[0]
+
+        # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
+        # cerebro.plot(b)
+        # time.sleep(10)
+
+        # print('Sharpe Ratio:', the_strat.analyzers.mysharpe.get_analysis())
+
+        period_results[period] = the_strat.roi
+        print()
+        print(f"period: {period}, roi: {the_strat.roi}")
+        print()
+
+
+    for period, roi in period_results.items():
+        print(f"period: {period}, roi: {the_strat.roi}")
+

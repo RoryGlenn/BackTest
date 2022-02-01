@@ -8,16 +8,17 @@ import math
 import sys
 
 
+
 BTCUSD_DECIMAL_PLACES = 5
 
 
 class BHDCA(bt.Strategy):
     params = (
-        ('bh_target_profit_percent', 1), 
-        ('bh_trail_percent',         0.01), # 1%
-        
+        # bh params
+        ('bh_target_profit_percent', 2),
+        # ('bh_trail_percent',         0.01), # 1%
 
-        # rename all of these to DCA_...
+        # dca params
         ('dca_target_profit_percent',        1),
         ('dca_trail_percent',                0.002), # 0.2%
         ('dca_safety_orders_max',            15),
@@ -31,9 +32,11 @@ class BHDCA(bt.Strategy):
     ############################################################################################
 
     def __init__(self) -> None:
-        self.hullma_20_day = bt.indicators.HullMovingAverage(self.datas[1],   period=20)
-        self.ma_200_day    = bt.indicators.MovingAverageSimple(self.datas[1], period=200)
+        # day values
+        self.hullma = bt.indicators.HullMovingAverage(self.datas[1],   period=20)
+        self.sma    = bt.indicators.MovingAverageSimple(self.datas[1], period=200)
 
+        # minute values
         # self.hullma = bt.indicators.HullMovingAverage(self.datas[0],   period=20)
         # self.sma    = bt.indicators.MovingAverageSimple(self.datas[0], period=200)
 
@@ -138,8 +141,6 @@ class BHDCA(bt.Strategy):
         return
 
     def __dca_start_new_deal(self) -> None:
-        # print("\n*** NEW DEAL ***")
-
         # BASE ORDER BUY
         entry_price = self.data.close[0]
         size        = self.params.dca_base_order_size_usd // entry_price
@@ -154,9 +155,9 @@ class BHDCA(bt.Strategy):
         return
 
     def __buy_and_hold(self) -> None:
-        if self.hullma[0] - self.hullma[-1] > 200: # this 200 number is subject, moving upwards (sell -> buy)
+        if self.hullma[0] - self.hullma[-1] > 0: # this 200 number is subject, moving upwards (sell -> buy)
             entry_price     = self.data.close[0]
-            base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.97
+            base_order_size = (self.broker.get_cash() / self.data.close[0]) * 0.98
             self.buy(price=entry_price, size=base_order_size, exectype=bt.Order.Market)
             self.is_dca     = False
         return
@@ -176,10 +177,11 @@ class BHDCA(bt.Strategy):
                         take_profit_price = entry_price + (entry_price * self.params.bh_target_profit_percent/100)
 
                         self.bh_take_profit_order = self.sell(price=take_profit_price,
-                                                            size=base_order_size,
-                                                            trailpercent=self.params.bh_trail_percent,
-                                                            plimit=take_profit_price,
-                                                            exectype=bt.Order.StopTrailLimit)
+                                                              size=base_order_size,
+                                                            # trailpercent=self.params.bh_trail_percent,
+                                                            # plimit=take_profit_price,
+                                                            # exectype=bt.Order.StopTrailLimit)
+                                                              exectype=bt.Order.Limit)
                     else:
                         """ DCA """
                         entry_price     = order.executed.price
@@ -223,13 +225,11 @@ class BHDCA(bt.Strategy):
             elif order.issell():
                 self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
                 
-                # if self.position.size != 0:
-                #     print()
-                #     print(self.position)
-                #     print()
+                # date    = self.data.datetime.date()
+                # minutes = self.datas[0].datetime.time(0)
+                # print(f"[{date} {minutes}]")
                 
                 # reset variables
-
                 if self.is_dca:
                     self.safety_orders         = []
                     self.dca_take_profit_order = None
@@ -270,7 +270,7 @@ class BHDCA(bt.Strategy):
 
     def notify_trade(self, trade: bt.trade.Trade) -> None:
         if trade.isclosed:
-            self.log('OPERATION PROFIT, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
+            self.log('TRADE COMPLETE, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
 
             # if trade.pnl <= 0 or trade.pnlcomm <= 0:
             #     print(trade.pnl, trade.pnlcomm)

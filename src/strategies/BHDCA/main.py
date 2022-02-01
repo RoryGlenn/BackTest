@@ -4,6 +4,7 @@ from backtrader_plotting.schemes import Blackly
 from bhdca        import BHDCA
 from buy_and_hold import BuyAndHold
 from dca3c        import DCA3C
+from min_max      import MinMax
 
 import backtrader as bt
 import pandas     as pd
@@ -13,7 +14,6 @@ import os
 import time
 import sys
 
-from min_max import MinMax
 
 
 TEN_THOUSAND      = 10000
@@ -33,11 +33,11 @@ def get_elapsed_time(start_time: float) -> str:
 def bhdca() -> None:
     start_time = time.time()
 
-    start_date = datetime.datetime(year=2021, month=1,  day=5,  hour=0, minute=0)
-    end_date   = datetime.datetime(year=2021, month=12, day=31, hour=23, minute=59)
+    # period 1: (4/14/2021 - 7/21/21)
+    start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
+    end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
 
     df = pd.read_csv(BTC_USD_1MIN_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data
-    # df = pd.read_csv(BTC_USD_1DAY_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data
     df = df[::-1] # reverse the data
 
     start_date -= datetime.timedelta(days=200) # time required to process the 200 day simple moving average
@@ -90,55 +90,3 @@ def bhdca() -> None:
 if __name__ == '__main__':
     os.system("cls")
     bhdca()
-
-
-
-"""
-
-    ^^^^ FINISHED BACKTESTING ^^^^^
-    ##########################################
-    target_profit_percent:          1
-    trail_percent:                  0.002
-    safety_orders_max:              15
-    safety_orders_active_max:       15
-    safety_order_volume_scale:      1.2
-    safety_order_step_scale:        1.16
-    safety_order_price_deviation:   1.0
-    base_order_size_usd:            20
-    safety_order_sizes_usd:         216.0 - 256.0
-
-    Time period:           564 days, 23:59:00
-    Total Profit:          $7,517.100000
-    ROI:                   75.17%
-    Start Portfolio Value: $10,000.000000
-    Final Portfolio Value: $17,517.100000
-    ##########################################
-    Time elapsed: 7 minutes 16 seconds
-
-
-NOW FOR MY SECOND TRICK, I WILL UP THE BASE ORDER PRICE TO $250 AND RUN IT AGAIN WITH THE SAME SETTINGS!
-
-    ^^^^ FINISHED BACKTESTING ^^^^^
-    ##########################################
-    target_profit_percent:          1
-    trail_percent:                  0.002
-    safety_orders_max:              15
-    safety_orders_active_max:       15
-    safety_order_volume_scale:      1.2
-    safety_order_step_scale:        1.16
-    safety_order_price_deviation:   1.0
-    base_order_size_usd:            250
-    safety_order_sizes_usd:         214.0 - 256.0
-
-    Time period:           564 days, 23:59:00
-    Total Profit:          $7,971.150000
-    ROI:                   79.71%
-    Start Portfolio Value: $10,000.000000
-    Final Portfolio Value: $17,971.150000
-    ##########################################
-    Time elapsed: 7 minutes 5 seconds
-
-
-NOTICE A 4.54% difference!
-
-"""

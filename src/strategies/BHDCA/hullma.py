@@ -260,16 +260,37 @@ if __name__ == '__main__':
 
         # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
         # cerebro.plot(b)
-        # time.sleep(10)
 
         # print('Sharpe Ratio:', the_strat.analyzers.mysharpe.get_analysis())
-
-        # period_results[period] = the_strat.roi
-        # print()
-        # print(f"period: {period}, roi: {the_strat.roi}")
-        # print()
-
 
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")
 
+
+
+"""
+
+STARTING CASH = $10,000.0
+
+TIME PERIODS:
+    periods 1-3: bear markets
+    periods 4-6: bull markets
+    periods 7-9: sideways/neutral markets
+    period  10:  all
+
+        period 1: 4/14/2021 - 7/21/2021     -21.81%
+        period 2: 1/7/2018  - 4/1/2018      -15.56%
+        period 3: 7/1/2019  - 11/19/2019    -15.556001232158556
+
+        period 4: 7/1/2017  - 11/19/2017   7.792950580347213
+        period 5: 1/28/2021 - 4/15/2021  113.58434262062053
+        period 6: 7/20/2021 - 9/5/2021    76.93923514685102
+
+        period 7: 5/9/2021  - 9/9/2021 -16.440396111890532
+        period 8: 1/1/2019  - 5/5/2019  18.823259001638505
+        period 9: 1/1/2019  - 4/1/2019  -1.0567515619259615
+
+        period 10: 1/1/2016 - 1/1/2022 
+
+
+"""

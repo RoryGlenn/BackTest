@@ -1,5 +1,7 @@
-from __future__ import (absolute_import, division, print_function, unicode_literals)
-from dca        import DCA
+from __future__                  import (absolute_import, division, print_function, unicode_literals)
+from dca                         import DCA
+from backtrader_plotting         import Bokeh  
+from backtrader_plotting.schemes import Blackly
 
 import backtrader as bt
 import pandas     as pd
@@ -8,6 +10,8 @@ import datetime
 import os
 import math
 import sys
+
+from strategies.BHDCA.dca3c import DCA3C
 
 
 TEN_THOUSAND          = 10000
@@ -44,10 +48,6 @@ class BHDCA(bt.Strategy):
         # day values
         self.hullma = bt.indicators.HullMovingAverage(self.datas[1],   period=20)
         self.sma    = bt.indicators.MovingAverageSimple(self.datas[1], period=200)
-
-        # minute values
-        # self.hullma = bt.indicators.HullMovingAverage(self.datas[0],   period=20)
-        # self.sma    = bt.indicators.MovingAverageSimple(self.datas[0], period=200)
 
         # Store all the Safety Orders so we can cancel the unfilled ones
         self.safety_orders          = []
@@ -106,8 +106,8 @@ class BHDCA(bt.Strategy):
         if self.dca_take_profit_order is None:
             return
 
-        # print("\nCANCELED TAKE PROFIT SELL ORDER")
-        # print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}\n")
+
+
 
         safety_order = None
 
@@ -144,9 +144,9 @@ class BHDCA(bt.Strategy):
 
         self.safety_orders.append(safety_order)
         
-        # print("\nNEW TAKE PROFIT ORDER")
-        # print(f"Price: {self.money_format(self.take_profit_order.price)}, Size: {self.take_profit_order.size}")
-        # print()
+
+
+
         return
 
     def __dca_start_new_deal(self) -> None:
@@ -175,8 +175,15 @@ class BHDCA(bt.Strategy):
         if order.status in [order.Submitted, order.Accepted]:
             return
         elif order.status in [order.Completed]:
+            order_executed_size  = '{:,.8f}'.format(order.executed.size)
+            order_executed_price = '{:,.8f}'.format(order.executed.price)
+            order_executed_value = '{:,.8f}'.format(order.executed.value)
+            order_executed_comm  = '{:,.8f}'.format(order.executed.comm)
+            date                 = self.data.datetime.date()
+            minutes              = self.datas[0].datetime.time(0)            
+            
             if order.isbuy():
-                self.log('BUY EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
+                print(f"[{date} {minutes}] BUY EXECUTED, Size: {order_executed_size} Price: {order_executed_price}, Cost: {order_executed_value}, Comm {order_executed_comm}")
                 
                 if order.exectype == 0:
                     if not self.is_dca:
@@ -232,11 +239,7 @@ class BHDCA(bt.Strategy):
 
                         self.safety_orders.append(safety_order)
             elif order.issell():
-                self.log('SELL EXECUTED, Size: {:,.8f} Price: {:,.8f}, Cost: {:,.8f}, Comm {:,.8f}'.format(order.executed.size, order.executed.price, order.executed.value, order.executed.comm))
-                
-                # date    = self.data.datetime.date()
-                # minutes = self.datas[0].datetime.time(0)
-                # print(f"[{date} {minutes}]")
+                print(f"[{date} {minutes}] SELL EXECUTED, Size: {order_executed_size} Price: {order_executed_price}, Cost: {order_executed_value}, Comm {order_executed_comm}")
                 
                 # reset variables
                 if self.is_dca:
@@ -359,7 +362,7 @@ class BHDCA(bt.Strategy):
 def get_period(period: int) -> datetime:
     start_date = None
     end_date   = None
-    
+
     if period == 1:
         # period 1: (4/14/2021 - 7/21/21)
         start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
@@ -370,11 +373,11 @@ def get_period(period: int) -> datetime:
         end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
     elif period == 3:
         # period 3: (7/1/2019 - 11/19/2019)
-        start_date = datetime.datetime(year=2019, month=7, day=1, hour=0, minute=1)
+        start_date = datetime.datetime(year=2019, month=7,  day=1,  hour=0, minute=1)
         end_date   = datetime.datetime(year=2019, month=11, day=19, hour=0, minute=1)
     elif period == 4:
         # period 4: (7/1/2017 - 11/19/2017)
-        start_date = datetime.datetime(year=2017, month=7, day=1, hour=0, minute=1)
+        start_date = datetime.datetime(year=2017, month=7,  day=1,  hour=0, minute=1)
         end_date   = datetime.datetime(year=2017, month=11, day=19, hour=0, minute=1)        
     elif period == 5:
         # period 5: (1/28/21 - 4/15/21)
@@ -383,7 +386,7 @@ def get_period(period: int) -> datetime:
     elif period == 6:
         # period 6: (7/20/2021 -> 9/5/2021)
         start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
-        end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=9, day=5,  hour=0, minute=1)
     elif period == 7:
         # period 7: 5/9/21 -> 9/9/21
         start_date = datetime.datetime(year=2021, month=5, day=9, hour=0, minute=1)
@@ -454,6 +457,9 @@ if __name__ == '__main__':
 
         cerebro.run()
 
+        # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
+        # cerebro.plot(b)
+        # break
 
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")

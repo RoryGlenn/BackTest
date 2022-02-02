@@ -1,12 +1,9 @@
-from strategies.DCA3C.dca3c_strategy import DCA
-from strategies.DCA3C.dca3c_strategy import DCA3C
-from strategies.DCA3C.dca_dynamic    import DCADynamic
+from dca import DCA
+from dca3c_strategy import DCA3C
 
-from strategies.buy_and_hold         import BuyAndHold
-from observers.stop_take             import SLTPTracking
 
-from backtrader_plotting             import Bokeh,   OptBrowser
-from backtrader_plotting.schemes     import Blackly, Tradimo
+from backtrader_plotting             import Bokeh  
+from backtrader_plotting.schemes     import Blackly
 
 import backtrader as bt
 import pandas     as pd
@@ -327,4 +324,18 @@ def btc_bear_bull() -> None:
 
 if __name__ == '__main__':
     os.system("cls")
-    btc_bear_bull()
+    # btc_bear_bull()
+
+
+    dca = DCA( entry_price_usd=50000,
+                    target_profit_percent=1,
+                    safety_orders_max=7,
+                    safety_orders_active_max=7,
+                    safety_order_volume_scale=2.5,
+                    safety_order_step_scale=1.56,
+                    safety_order_price_deviation_percent=1.3,
+                    base_order_size_usd=10,
+                    safety_order_size_usd=10
+                )
+
+    dca.print_table()

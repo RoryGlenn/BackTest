@@ -2,14 +2,23 @@ from __future__ import (absolute_import, division, print_function, unicode_liter
 from dca        import DCA
 
 import backtrader as bt
+import pandas     as pd
 
-import time
+import datetime
+import os
 import math
 import sys
 
 
+TEN_THOUSAND          = 10000
+BTC_USD_1DAY_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_day.csv"
+BTC_USD_2021_1MIN     = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2021_1min.csv"
+BTC_USD_1MIN_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
 
 BTCUSD_DECIMAL_PLACES = 5
+
+p              = None
+period_results = dict()
 
 
 class BHDCA(bt.Strategy):
@@ -174,7 +183,7 @@ class BHDCA(bt.Strategy):
                         """Buy&Hold take profit order"""
                         entry_price       = order.executed.price
                         base_order_size   = order.executed.size
-                        take_profit_price = entry_price + (entry_price * self.params.bh_target_profit_percent/100)
+                        take_profit_price = entry_price + (entry_price * (self.params.bh_target_profit_percent/100))
 
                         self.bh_take_profit_order = self.sell(price=take_profit_price,
                                                               size=base_order_size,
@@ -303,6 +312,8 @@ class BHDCA(bt.Strategy):
         return
 
     def stop(self) -> None:
+        global period_results
+
         total_value = self.broker.get_value()
         profit      = total_value - self.start_cash
         roi         = ((total_value / self.start_cash) - 1.0) * 100
@@ -314,6 +325,9 @@ class BHDCA(bt.Strategy):
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print("##########################################")
+
+        print(f"*** Period {p} results ***")
+
         print('target_profit_percent:         ', self.params.dca_target_profit_percent)
         print('trail_percent:                 ', self.params.dca_trail_percent)
         print('safety_orders_max:             ', self.params.dca_safety_orders_max)
@@ -336,4 +350,111 @@ class BHDCA(bt.Strategy):
         print(f"Start Portfolio Value: {self.start_value}")
         print(f"Final Portfolio Value: {total_value}")
         print("##########################################")
+        
+        period_results[p] = roi
         return
+
+
+
+def get_period(period: int) -> datetime:
+    start_date = None
+    end_date   = None
+    
+    if period == 1:
+        # period 1: (4/14/2021 - 7/21/21)
+        start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)    
+    elif period == 2:
+        # period 2: (1/7/2018 - 4/1/2018)
+        start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
+    elif period == 3:
+        # period 3: (7/1/2019 - 11/19/2019)
+        start_date = datetime.datetime(year=2019, month=7, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2019, month=11, day=19, hour=0, minute=1)
+    elif period == 4:
+        # period 4: (7/1/2017 - 11/19/2017)
+        start_date = datetime.datetime(year=2017, month=7, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2017, month=11, day=19, hour=0, minute=1)        
+    elif period == 5:
+        # period 5: (1/28/21 - 4/15/21)
+        start_date = datetime.datetime(year=2021, month=1, day=28, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=4, day=15, hour=0, minute=1)
+    elif period == 6:
+        # period 6: (7/20/2021 -> 9/5/2021)
+        start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
+    elif period == 7:
+        # period 7: 5/9/21 -> 9/9/21
+        start_date = datetime.datetime(year=2021, month=5, day=9, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=9, day=9, hour=0, minute=1)
+    elif period == 8:
+        # period 8: 1/1/2019 -> 5/5/2019
+        start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2019, month=5, day=1, hour=0, minute=1)
+    elif period == 9:
+        # period 9: 1/1/2019 -> 4/1/19
+        start_date = datetime.datetime(year=2019, month=1, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2019, month=4, day=1, hour=0, minute=1)
+    elif period == 10:
+        # period 10: 1/1/2016 -> 1/26/2022
+        start_date = datetime.datetime(year=2016, month=1, day=1, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2022, month=1, day=1, hour=0, minute=1)
+    else:
+        print("invalid period")
+        sys.exit()
+    return start_date, end_date
+
+
+
+if __name__ == '__main__':
+    os.system('cls')
+    
+    period_results = dict()
+
+    for period in range(1, 11): # PERIOD 1-10
+        start_date, end_date = get_period(period)
+        start_date -= datetime.timedelta(days=200) # time required to process the 200 day simple moving average
+
+        start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+        end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
+
+        df = pd.read_csv(BTC_USD_1MIN_ALL, usecols=['Date', 'Symbol', 'Open', 'High', 'Low', 'Close', 'Volume'], skiprows=1) # read in the data
+        df = df[::-1] # reverse the data
+
+        # to improve start up speed, drop all data outside of testing timeframe
+        df = df.drop(df[df['Date'] < start_date_str].index)
+        df = df.drop(df[df['Date'] > end_date_str].index)
+
+        df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
+        df.set_index('Date', inplace=True)
+
+        print(df)
+
+        data = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Minutes, fromdate=start_date, todate=end_date)
+
+        cerebro = bt.Cerebro()
+        cerebro.broker.set_cash(TEN_THOUSAND)
+        cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
+
+        cerebro.adddata(data, name='BTCUSD_MINUTE') # adding a name while using bokeh will avoid plotting error
+        cerebro.resampledata(data, timeframe=bt.TimeFrame.Days, compression=1, name="BTCUSD_DAY")
+        
+        cerebro.addstrategy(BHDCA)
+
+        cerebro.addindicator(bt.indicators.HullMovingAverage,   period=20)
+        cerebro.addindicator(bt.indicators.MovingAverageSimple, period=200)
+
+        p = period
+
+        print()
+        print("^^^^ STARTING THE BACKTEST ^^^^^")
+        print(f"*** Testing period {p} ***")
+        print()
+
+        cerebro.run()
+
+
+    for period, roi in period_results.items():
+        print(f"period: {period}, roi: {roi}")
+

@@ -19,6 +19,9 @@ BTC_USD_1DAY_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_day.csv"
 BTC_USD_2021_1MIN     = "historical_data/gemini/BTCUSD/gemini_BTCUSD_2021_1min.csv"
 BTC_USD_1MIN_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.csv"
 
+p              = None
+period_results = dict()
+
 
 class HullMA(bt.Strategy):
     def __init__(self) -> None:
@@ -131,19 +134,24 @@ class HullMA(bt.Strategy):
         return
 
     def stop(self) -> None:
-        total_value = self.broker.get_value()
-        profit = total_value - self.start_cash
-        roi = ((total_value / self.start_cash) - 1.0) * 100
-        self.roi = '{:.2f}%'.format(roi)
+        global period_results
 
-        profit = self.money_format(round(profit, 2))
+        total_value = self.broker.get_value()
+        profit      = total_value - self.start_cash
+        roi         = ((total_value / self.start_cash) - 1.0) * 100
+        self.roi    = '{:.2f}%'.format(roi)
+
+        profit           = self.money_format(round(profit, 2))
         self.start_value = self.money_format(round(self.start_value, 2))
-        total_value = self.money_format(round(total_value, 2))
+        total_value      = self.money_format(round(total_value, 2))
+
+        period_results[p] = roi
 
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print("##########################################")
 
         print()
+        print(f"Testing period {p}")
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")
@@ -209,7 +217,7 @@ if __name__ == '__main__':
     
     period_results = dict()
 
-    for period in range(2, 10):
+    for period in range(1, 11): # PERIOD 1-10
         start_date, end_date = get_period(period)
         start_date -= datetime.timedelta(days=20) # time required to process the 200 day simple moving average
 
@@ -241,12 +249,14 @@ if __name__ == '__main__':
 
         cerebro.addindicator(bt.indicators.HullMovingAverage, period=20)
 
+        p = period
+
         print()
         print("^^^^ STARTING THE BACKTEST ^^^^^")
         print()
 
-        the_strat = cerebro.run()
-        the_strat = the_strat[0]
+        cerebro.run()
+
 
         # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
         # cerebro.plot(b)
@@ -254,12 +264,12 @@ if __name__ == '__main__':
 
         # print('Sharpe Ratio:', the_strat.analyzers.mysharpe.get_analysis())
 
-        period_results[period] = the_strat.roi
-        print()
-        print(f"period: {period}, roi: {the_strat.roi}")
-        print()
+        # period_results[period] = the_strat.roi
+        # print()
+        # print(f"period: {period}, roi: {the_strat.roi}")
+        # print()
 
 
     for period, roi in period_results.items():
-        print(f"period: {period}, roi: {the_strat.roi}")
+        print(f"period: {period}, roi: {roi}")
 

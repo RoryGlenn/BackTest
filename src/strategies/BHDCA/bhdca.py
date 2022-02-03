@@ -106,9 +106,6 @@ class BHDCA(bt.Strategy):
         if self.dca_take_profit_order is None:
             return
 
-
-
-
         safety_order = None
 
         if self.is_first_safety_order:
@@ -143,10 +140,6 @@ class BHDCA(bt.Strategy):
                                         oco=self.dca_take_profit_order) # oco = One Cancel Others
 
         self.safety_orders.append(safety_order)
-        
-
-
-
         return
 
     def __dca_start_new_deal(self) -> None:
@@ -464,3 +457,22 @@ if __name__ == '__main__':
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")
 
+
+
+"""
+        period 1: 4/14/2021 - 7/21/2021   -52.15%
+        period 2: 1/7/2018  - 4/1/2018    -58.36%
+        period 3: 7/1/2019  - 11/19/2019  -21.40%
+
+        period 4: 7/1/2017  - 11/19/2017 162.98%
+        period 5: 1/28/2021 - 4/15/2021   69.96%
+        period 6: 7/20/2021 - 9/5/2021     8.39%
+
+        period 7: 5/9/2021    - 9/9/2021 -21.60%
+        period 8: 5/9/2021    - 9/9/2021   4.95%
+        period 9: 1/1/2019    - 4/1/2019   1.02%
+
+        period 10: 1/1/2016 - 1/1/2022  3640.46%
+
+
+"""

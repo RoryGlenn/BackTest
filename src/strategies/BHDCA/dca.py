@@ -460,19 +460,3 @@ class DCA():
         self.base_order_size_usd = self.safety_order_size_usd * 2
         self.safety_order_size   = self.safety_order_size_usd / self.entry_price_usd
         return
-
-
-
-# dca = DCA(
-#             entry_price_usd=10,
-#             target_profit_percent=1,
-#             safety_orders_max=7,
-#             safety_orders_active_max=7,
-#             safety_order_volume_scale=2.5,
-#             safety_order_step_scale=1,
-#             safety_order_price_deviation_percent=3,
-#             base_order_size_usd=10,
-#             safety_order_size_usd=10
-#         )
-
-# dca.print_table()

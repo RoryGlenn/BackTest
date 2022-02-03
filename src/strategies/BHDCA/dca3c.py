@@ -367,8 +367,6 @@ def get_period(period: int) -> datetime:
 
 if __name__ == '__main__':
     os.system('cls')
-    
-    period_results = dict()
 
     for period in range(1, 11): # PERIOD 1-10
         start_date, end_date = get_period(period)
@@ -418,41 +416,55 @@ if __name__ == '__main__':
 
 
 """
-    What are the results of SCALP7 compared to SCALP15?
-................................................................
 
-    SCALP 7
-        period: 1, roi: 2.01%
-        period: 2, roi: 2.50%
-        period: 3, roi: 1.09%
-        period: 4, roi: 2.37%
-        period: 5, roi: 1.40%
-        period: 6, roi: 0.43%
-        period: 7, roi: 2.04%
-        period: 8, roi: 0.48%
-        period: 9, roi: 0.23%
-        period: 10, roi: 39.47%
+    period 1: 4/14/2021 - 7/21/2021 
+    period 2: 1/7/2018  - 4/1/2018  
+    period 3: 7/1/2019  - 11/19/2019
 
+    period 4: 7/1/2017  - 11/19/2017
+    period 5: 1/28/2021 - 4/15/2021 
+    period 6: 7/20/2021 - 9/5/2021  
 
+    period 7: 5/9/2021  - 9/9/2021
+    period 8: 1/1/2019  - 5/5/2019  
+    period 9: 1/1/2019  - 4/1/2019
 
-##############################################
+    period 10: 1/1/2016 - 1/1/2022
 
 
-    SCALP 15
-        period: 1, roi: 6.83%
-        period: 2, roi: 4.08%
-        period: 3, roi: 3.12%
+        SCALP 7
+            period: 1, roi: 2.01%
+            period: 2, roi: 2.50%
+            period: 3, roi: 1.09%
+            
+            period: 4, roi: 2.37%
+            period: 5, roi: 1.40%
+            period: 6, roi: 0.43%
+            
+            period: 7, roi: 2.04%
+            period: 8, roi: 0.48%
+            period: 9, roi: 0.23%
 
-        period: 4, roi: 9.22%
-        period: 5, roi: 5.78%
-        period: 6, roi: 1.84%
-
-        period: 7, roi: 8.91%
-        period: 8, roi: 1.64%
-        period: 9, roi: 0.81%
-
-        period: 10, roi: 174.55%
+            period: 10, roi: 39.47%
 
 
+
+    ##############################################
+
+
+        SCALP 15
+            period: 1, roi: 6.83%
+            period: 2, roi: 4.08%
+            period: 3, roi: 3.12%
+
+            period: 4, roi: 9.22%
+            period: 5, roi: 5.78%
+            period: 6, roi: 1.84%
+
+            period: 7, roi: 8.91%
+            period: 8, roi: 1.64%
+            period: 9, roi: 0.81%
+
+            period: 10, roi: 174.55%
 
 """

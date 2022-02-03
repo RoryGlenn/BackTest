@@ -1,9 +1,9 @@
 from __future__ import (absolute_import, division,
                         print_function, unicode_literals)
 
-from backtrader_plotting         import Bokeh  
-from backtrader_plotting.schemes import Blackly
-from pprint                      import pprint
+# from backtrader_plotting         import Bokeh
+# from backtrader_plotting.schemes import Blackly
+# from pprint                      import pprint
 
 import pandas     as pd
 import backtrader as bt
@@ -11,7 +11,6 @@ import backtrader as bt
 import datetime
 import os
 import sys
-import time
 
 BTCUSD_DECIMAL_PLACES = 5
 TEN_THOUSAND          = 10000
@@ -139,25 +138,26 @@ class HullMA(bt.Strategy):
         total_value = self.broker.get_value()
         profit      = total_value - self.start_cash
         roi         = ((total_value / self.start_cash) - 1.0) * 100
-        self.roi    = '{:.2f}%'.format(roi)
+        roi         = '{:.2f}%'.format(roi)
 
         profit           = self.money_format(round(profit, 2))
         self.start_value = self.money_format(round(self.start_value, 2))
         total_value      = self.money_format(round(total_value, 2))
 
-        period_results[p] = roi
-
         print("\n\n^^^^ FINISHED BACKTESTING ^^^^^")
         print("##########################################")
 
+        print(f"*** HullMA Period {p} results ***")
+
         print()
-        print(f"Testing period {p}")
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {profit}")
         print(f"ROI:                   {roi}")
         print(f"Start Portfolio Value: {self.start_value}")
         print(f"Final Portfolio Value: {total_value}")
         print("##########################################")
+        
+        period_results[p] = roi
         return
 
 
@@ -165,7 +165,7 @@ class HullMA(bt.Strategy):
 def get_period(period: int) -> datetime:
     start_date = None
     end_date   = None
-    
+
     if period == 1:
         # period 1: (4/14/2021 - 7/21/21)
         start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
@@ -176,11 +176,11 @@ def get_period(period: int) -> datetime:
         end_date   = datetime.datetime(year=2018, month=4, day=1, hour=0, minute=1)
     elif period == 3:
         # period 3: (7/1/2019 - 11/19/2019)
-        start_date = datetime.datetime(year=2019, month=7, day=1, hour=0, minute=1)
+        start_date = datetime.datetime(year=2019, month=7,  day=1,  hour=0, minute=1)
         end_date   = datetime.datetime(year=2019, month=11, day=19, hour=0, minute=1)
     elif period == 4:
         # period 4: (7/1/2017 - 11/19/2017)
-        start_date = datetime.datetime(year=2017, month=7, day=1, hour=0, minute=1)
+        start_date = datetime.datetime(year=2017, month=7,  day=1,  hour=0, minute=1)
         end_date   = datetime.datetime(year=2017, month=11, day=19, hour=0, minute=1)        
     elif period == 5:
         # period 5: (1/28/21 - 4/15/21)
@@ -189,7 +189,7 @@ def get_period(period: int) -> datetime:
     elif period == 6:
         # period 6: (7/20/2021 -> 9/5/2021)
         start_date = datetime.datetime(year=2021, month=7, day=20, hour=0, minute=1)
-        end_date   = datetime.datetime(year=2021, month=9, day=5, hour=0, minute=1)
+        end_date   = datetime.datetime(year=2021, month=9, day=5,  hour=0, minute=1)
     elif period == 7:
         # period 7: 5/9/21 -> 9/9/21
         start_date = datetime.datetime(year=2021, month=5, day=9, hour=0, minute=1)
@@ -214,8 +214,6 @@ def get_period(period: int) -> datetime:
 
 if __name__ == '__main__':
     os.system('cls')
-    
-    period_results = dict()
 
     for period in range(1, 11): # PERIOD 1-10
         start_date, end_date = get_period(period)
@@ -278,19 +276,27 @@ TIME PERIODS:
     periods 7-9: sideways/neutral markets
     period  10:  all
 
-        period 1: 4/14/2021 - 7/21/2021     -21.81%
-        period 2: 1/7/2018  - 4/1/2018      -15.56%
-        period 3: 7/1/2019  - 11/19/2019    -15.556001232158556
+        period 1: 4/14/2021 - 7/21/2021   -21.81%
+        period 2: 1/7/2018  - 4/1/2018    -15.56%
+        period 3: 7/1/2019  - 11/19/2019  -15.55%
 
-        period 4: 7/1/2017  - 11/19/2017   7.792950580347213
-        period 5: 1/28/2021 - 4/15/2021  113.58434262062053
-        period 6: 7/20/2021 - 9/5/2021    76.93923514685102
+        period 4: 7/1/2017  - 11/19/2017   7.79%
+        period 5: 1/28/2021 - 4/15/2021  113.58%
+        period 6: 7/20/2021 - 9/5/2021    76.93%
 
-        period 7: 5/9/2021  - 9/9/2021 -16.440396111890532
-        period 8: 1/1/2019  - 5/5/2019  18.823259001638505
-        period 9: 1/1/2019  - 4/1/2019  -1.0567515619259615
+        period 7: 5/9/2021  - 9/9/2021 -16.44%
+        period 8: 1/1/2019  - 5/5/2019  18.82%
+        period 9: 1/1/2019  - 4/1/2019  -1.056%
 
-        period 10: 1/1/2016 - 1/1/2022 
+        period 10: 1/1/2016 - 1/1/2022  
 
+
+
+
+
+
+    WHAT ARE THE RESULTS FOR THE HULLMA?!!?????????????????????????????????????????????????
+
+    .............................................
 
 """

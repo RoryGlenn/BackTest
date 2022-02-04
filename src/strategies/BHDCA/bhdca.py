@@ -1,6 +1,6 @@
 from __future__                  import (absolute_import, division, print_function, unicode_literals)
 from dca                         import DCA
-from backtrader_plotting         import Bokeh  
+from backtrader_plotting         import Bokeh
 from backtrader_plotting.schemes import Blackly
 
 import backtrader as bt
@@ -11,7 +11,6 @@ import os
 import math
 import sys
 
-from strategies.BHDCA.dca3c import DCA3C
 
 
 TEN_THOUSAND          = 10000
@@ -29,7 +28,7 @@ class BHDCA(bt.Strategy):
     params = (
         # bh params
         ('bh_target_profit_percent', 2),
-        # ('bh_trail_percent',         0.01), # 1%
+        ('bh_trail_percent',         0.005), 
 
         # dca params
         ('dca_target_profit_percent',        1),
@@ -186,11 +185,11 @@ class BHDCA(bt.Strategy):
                         take_profit_price = entry_price + (entry_price * (self.params.bh_target_profit_percent/100))
 
                         self.bh_take_profit_order = self.sell(price=take_profit_price,
-                                                              size=base_order_size,
-                                                            # trailpercent=self.params.bh_trail_percent,
-                                                            # plimit=take_profit_price,
-                                                            # exectype=bt.Order.StopTrailLimit)
-                                                              exectype=bt.Order.Limit)
+                                                                size=base_order_size,
+                                                                trailpercent=self.params.bh_trail_percent,
+                                                                plimit=take_profit_price,
+                                                                exectype=bt.Order.StopTrailLimit)
+                                                            #   exectype=bt.Order.Limit)
                     else:
                         """ DCA """
                         entry_price     = order.executed.price
@@ -277,11 +276,6 @@ class BHDCA(bt.Strategy):
         if trade.isclosed:
             self.log('TRADE COMPLETE, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
 
-            # if trade.pnl <= 0 or trade.pnlcomm <= 0:
-            #     print(trade.pnl, trade.pnlcomm)
-            #     print()
-            #     print(trade)
-            #     print()
         return
 
     def prenext(self) -> None:
@@ -410,7 +404,7 @@ if __name__ == '__main__':
 
     for period in range(1, 11): # PERIOD 1-10
         start_date, end_date = get_period(period)
-        start_date -= datetime.timedelta(days=200) # time required to process the 200 day simple moving average
+        start_date           -= datetime.timedelta(days=200) # time required to process the 200 day simple moving average
 
         start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
         end_date_str   = end_date.strftime(  "%Y-%m-%d %H:%M:%S")
@@ -452,7 +446,6 @@ if __name__ == '__main__':
 
         # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
         # cerebro.plot(b)
-        # break
 
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")

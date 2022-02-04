@@ -19,6 +19,15 @@ p              = None
 period_results = dict()
 
 
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
+
+
 class BuyAndHold(bt.Strategy):
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''

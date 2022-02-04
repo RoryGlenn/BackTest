@@ -28,7 +28,7 @@ class BHDCA(bt.Strategy):
     params = (
         # bh params
         ('bh_target_profit_percent', 2),
-        ('bh_trail_percent',         0.005), 
+        # ('bh_trail_percent',         0.005), 
 
         # dca params
         ('dca_target_profit_percent',        1),
@@ -186,10 +186,10 @@ class BHDCA(bt.Strategy):
 
                         self.bh_take_profit_order = self.sell(price=take_profit_price,
                                                                 size=base_order_size,
-                                                                trailpercent=self.params.bh_trail_percent,
-                                                                plimit=take_profit_price,
-                                                                exectype=bt.Order.StopTrailLimit)
-                                                            #   exectype=bt.Order.Limit)
+                                                                # trailpercent=self.params.bh_trail_percent,
+                                                                # plimit=take_profit_price,
+                                                                # exectype=bt.Order.StopTrailLimit)
+                                                              exectype=bt.Order.Limit)
                     else:
                         """ DCA """
                         entry_price     = order.executed.price
@@ -275,7 +275,6 @@ class BHDCA(bt.Strategy):
     def notify_trade(self, trade: bt.trade.Trade) -> None:
         if trade.isclosed:
             self.log('TRADE COMPLETE, GROSS %.6f, NET %.6f, Size: %.6f' % (trade.pnl, trade.pnlcomm, trade.size))
-
         return
 
     def prenext(self) -> None:
@@ -285,6 +284,7 @@ class BHDCA(bt.Strategy):
 
     def next(self) -> None:
         self.print_ohlc()
+
         current_price = self.data.close[0]
             
         if current_price > self.sma[0] and self.bh_take_profit_order is None and len(self.safety_orders) == 0:
@@ -444,7 +444,7 @@ if __name__ == '__main__':
 
         cerebro.run()
 
-        # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
+        # b = Bokeh(style='bar', filename='backtest_results/BHDCA.html', output_mode='show', scheme=Blackly())
         # cerebro.plot(b)
 
     for period, roi in period_results.items():
@@ -453,19 +453,65 @@ if __name__ == '__main__':
 
 
 """
-        period 1: 4/14/2021 - 7/21/2021   -52.15%
-        period 2: 1/7/2018  - 4/1/2018    -58.36%
-        period 3: 7/1/2019  - 11/19/2019  -21.40%
+WITHOUT TRAILING
 
-        period 4: 7/1/2017  - 11/19/2017 162.98%
-        period 5: 1/28/2021 - 4/15/2021   69.96%
-        period 6: 7/20/2021 - 9/5/2021     8.39%
+        ('bh_target_profit_percent', 2),
 
-        period 7: 5/9/2021    - 9/9/2021 -21.60%
-        period 8: 5/9/2021    - 9/9/2021   4.95%
-        period 9: 1/1/2019    - 4/1/2019   1.02%
+        # dca params
+        ('dca_target_profit_percent',        1),
+        ('dca_trail_percent',                0.002), # 0.2%
+        ('dca_safety_orders_max',            15),
+        ('dca_safety_orders_active_max',     15),
+        ('dca_safety_order_volume_scale',    1.2),
+        ('dca_safety_order_step_scale',      1.16),
+        ('dca_safety_order_price_deviation', 1.0),
+        ('dca_base_order_size_usd',          250),
+        ('dca_safety_order_size_usd',        250)
 
-        period 10: 1/1/2016 - 1/1/2022  3640.46%
+            period 1: 4/14/2021 - 7/21/2021     -52.15%
+            period 2: 1/7/2018  - 4/1/2018      -58.36%
+            period 3: 7/1/2019  - 11/19/2019    -21.40%
+    
+            period 4: 7/1/2017  - 11/19/2017   162.98%
+            period 5: 1/28/2021 - 4/15/2021     69.96%
+            period 6: 7/20/2021 - 9/5/2021       8.39%
+    
+            period 7: 5/9/2021    - 9/9/2021   -21.60%
+            period 8: 5/9/2021    - 9/9/2021     4.95%
+            period 9: 1/1/2019    - 4/1/2019     1.02%
+    
+            period 10: 1/1/2016 - 1/1/2022    3640.46%
 
+##########################################################################
+
+WITH TRAILING 
+
+        ('bh_target_profit_percent', 2),
+        ('bh_trail_percent',         0.005), 
+
+        # dca params
+        ('dca_target_profit_percent',        1),
+        ('dca_trail_percent',                0.002), # 0.2%
+        ('dca_safety_orders_max',            15),
+        ('dca_safety_orders_active_max',     15),
+        ('dca_safety_order_volume_scale',    1.2),
+        ('dca_safety_order_step_scale',      1.16),
+        ('dca_safety_order_price_deviation', 1.0),
+        ('dca_base_order_size_usd',          250),
+        ('dca_safety_order_size_usd',        250)
+
+            period 1: 4/14/2021 - 7/21/2021   -52.25%
+            period 2: 1/7/2018  - 4/1/2018    -58.36%
+            period 3: 7/1/2019  - 11/19/2019  -22.35%
+
+            period 4: 7/1/2017  - 11/19/2017  146.09%
+            period 5: 1/28/2021 - 4/15/2021    67.52%
+            period 6: 7/20/2021 - 9/5/2021     11.27%
+            
+            period 7: 5/9/2021    - 9/9/2021   -21.60%
+            period 8: 5/9/2021    - 9/9/2021     4.34%
+            period 9: 1/1/2019    - 4/1/2019     1.02%
+            
+            period 10: 1/1/2016 - 1/1/2022    2855.82%
 
 """

@@ -7,6 +7,7 @@ import pandas     as pd
 import datetime
 import os
 import sys
+import time
 
 
 TEN_THOUSAND          = 10000
@@ -18,6 +19,15 @@ BTCUSD_DECIMAL_PLACES = 5
 
 p              = None
 period_results = dict()
+
+
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
 
 
 class DCA3C(bt.Strategy):

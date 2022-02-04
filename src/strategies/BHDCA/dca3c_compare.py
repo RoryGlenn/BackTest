@@ -7,11 +7,19 @@ import pandas     as pd
 import datetime
 import os
 import sys
+import time
 
 
 TEN_THOUSAND          = 10000
 BTCUSD_DECIMAL_PLACES = 5
 BTC_USD_1MIN_ALL      = "C:/Users/newco/Downloads/Binance_BTCUSDT_minute.csv"
+
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
 
 
 

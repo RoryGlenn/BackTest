@@ -9,6 +9,7 @@ import backtrader as bt
 
 import datetime
 import os
+import time
 import sys
 
 BTCUSD_DECIMAL_PLACES = 5
@@ -19,6 +20,15 @@ BTC_USD_1MIN_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.cs
 
 p              = None
 period_results = dict()
+
+
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
 
 
 class SMA200(bt.Strategy):
@@ -232,11 +242,11 @@ if __name__ == '__main__':
         cerebro.broker.set_cash(TEN_THOUSAND)
         cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
 
-        cerebro.adddata(data, name='BTCUSD_DAY') # adding a name while using bokeh will avoid plotting error
-        
+        cerebro.adddata(data, name='BTCUSD_DAY')        # adding a name while using bokeh will avoid plotting error
         cerebro.addstrategy(SMA200)
 
         cerebro.addindicator(bt.indicators.MovingAverageSimple, period=200)
+        cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe")
 
         p = period
 
@@ -244,12 +254,15 @@ if __name__ == '__main__':
         print("^^^^ STARTING THE BACKTEST ^^^^^")
         print()
 
-        cerebro.run()
+        the_strategy = cerebro.run()
 
-        # b = Bokeh(style='bar', filename='backtest_results/HullMA.html', output_mode='show', scheme=Blackly())
-        # cerebro.plot(b)
+        try:
+            the_strategy = the_strategy[0]
+            sharpe_ratio = the_strategy.analyzers.sharpe.get_analysis()['sharperatio']
+            print('Sharpe Ratio:', sharpe_ratio)
+        except Exception as e:
+            print(e)
 
-        # print('Sharpe Ratio:', the_strategy.analyzers.mysharpe.get_analysis())
 
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")

@@ -11,6 +11,7 @@ import backtrader as bt
 import datetime
 import os
 import sys
+import time
 
 BTCUSD_DECIMAL_PLACES = 5
 TEN_THOUSAND          = 10000
@@ -20,6 +21,16 @@ BTC_USD_1MIN_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.cs
 
 p              = None
 period_results = dict()
+
+
+
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
 
 
 class HullMA(bt.Strategy):

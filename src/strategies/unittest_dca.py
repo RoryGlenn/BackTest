@@ -3,6 +3,15 @@ from pprint import pprint
 
 import pytest
 
+"""unittest_dca.py - 
+
+to run file, 
+pytest unittest_dca.py
+
+
+
+"""
+
 
 MAX_DECIMAL_PLACES = 8
 

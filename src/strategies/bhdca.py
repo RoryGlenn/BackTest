@@ -435,6 +435,15 @@ if __name__ == '__main__':
         cerebro.addindicator(bt.indicators.HullMovingAverage,   period=20)
         cerebro.addindicator(bt.indicators.MovingAverageSimple, period=200)
 
+
+        # adding analyzers
+        cerebro.addanalyzer(bt.analyzers.SharpeRatio)
+        cerebro.addanalyzer(bt.analyzers.VWR)
+        cerebro.addanalyzer(bt.analyzers.PeriodStats)
+        cerebro.addanalyzer(bt.analyzers.DrawDown)
+        cerebro.addanalyzer(bt.analyzers.SQN)
+        cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
+
         p = period
 
         print()

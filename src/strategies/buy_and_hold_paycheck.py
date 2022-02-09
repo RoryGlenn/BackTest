@@ -31,7 +31,7 @@ def get_elapsed_time(start_time: float) -> str:
 
 
 
-class BuyAndHoldMorePaycheck(bt.Strategy):
+class BuyAndHoldPaycheck(bt.Strategy):
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
         dt = dt or self.data.datetime[0]
@@ -42,18 +42,14 @@ class BuyAndHoldMorePaycheck(bt.Strategy):
         return
 
     def __init__(self) -> None:
-        self.start_cash  = 0
-        self.available_cash = 0
-        self.start_value = 0
-        self.time_period = None
-        self.order       = None
+        self.start_cash          = 0
+        self.available_cash      = 0
+        self.start_value         = 0
+        self.time_period         = None
+        self.order               = None
         self.total_cash_invested = 0
+        self.next_paycheck_date  = None
 
-        self.next_paycheck_date = None
-        self.has_paycheck = False
-
-
-        self.current_price = None
         self.buy_more_thres_perc_10 = 10
         self.buy_more_thres_perc_20 = 20
         self.buy_more_thres_perc_30 = 30
@@ -101,7 +97,6 @@ class BuyAndHoldMorePaycheck(bt.Strategy):
         if self.data.datetime.date() > self.next_paycheck_date:
             self.next_paycheck_date = self.data.datetime.date() + datetime.timedelta(14)
             self.broker.add_cash(self.paycheck_amount)
-            self.has_paycheck = True
         return
 
     def start(self) -> None:
@@ -114,7 +109,7 @@ class BuyAndHoldMorePaycheck(bt.Strategy):
 
         if not self.position:
             quantity_to_buy = int((self.start_cash / self.data.close[0]) * 0.99)
-            self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
+            self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
             self.total_cash_invested += quantity_to_buy * self.data.close[0]
         return
 
@@ -124,7 +119,7 @@ class BuyAndHoldMorePaycheck(bt.Strategy):
         quantity_to_buy = int((self.broker.get_cash() / self.data.close[0]) * 0.98)
 
         if quantity_to_buy >= 1:
-            self.order = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
+            self.buy(size=quantity_to_buy, exectype=bt.Order.Market)
 
         self.payday()
         return
@@ -200,17 +195,17 @@ if __name__ == '__main__':
     df['Date'] = pd.to_datetime(df['Date']).dt.tz_localize(None)
     df.set_index('Date', inplace=True)
 
-    start_date = datetime.datetime(1993, 1, 29)
-    end_date   = datetime.datetime(2022, 2, 7)
+    start_date = datetime.datetime(2004, 8, 19)
+    end_date   = datetime.datetime(2020, 1, 1)
     data       = bt.feeds.PandasData(dataname=df, timeframe=bt.TimeFrame.Days, fromdate=start_date, todate=end_date)
 
     cerebro = bt.Cerebro()
     cerebro.broker.set_cash(TEN_THOUSAND)
-    cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
+    cerebro.broker.setcommission(commission=0.001) 
 
     cerebro.adddata(data, name='SPY_DAY') # adding a name while using bokeh will avoid plotting error
     
-    cerebro.addstrategy(BuyAndHoldMorePaycheck)
+    cerebro.addstrategy(BuyAndHoldPaycheck)
     cerebro.addanalyzer(bt.analyzers.SharpeRatio)
 
     print()
@@ -227,16 +222,17 @@ if __name__ == '__main__':
 
 
 """
-^^^^ FINISHED BACKTESTING ^^^^^
-##########################################
+(2004, 8, 19) -> (2020, 1, 1)
+    ^^^^ FINISHED BACKTESTING ^^^^^
+    ##########################################
 
-Time period:           10601 days, 0:00:00
-Total Profit:          $2,050,115.730000
-ROI:                   290.85%
-Start Portfolio Value: $10,000.000000
-Total cash invested:   $704,874.810000
-Final Portfolio Value: $2,754,990.540000
-##########################################
+    Time period:           5613 days, 0:00:00
+    Total Profit:          $413,385.020000
+    ROI:                   108.11%
+    Start Portfolio Value: $10,000.000000
+    Total cash invested:   $382,377.130000
+    Final Portfolio Value: $795,762.150000
+    ##########################################
 
 
 """

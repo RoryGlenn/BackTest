@@ -173,12 +173,6 @@ class BuyAndHoldMorePaycheck(bt.Strategy):
         self.payday()
         return
 
-    def notify_cashvalue(self, cash: float, value: float) -> None:
-        if cash != self.broker.get_cash():
-            print("cash: ", cash)
-            print("self.broker.get_cash():", self.broker.get_cash())
-        return
-
     def notify_order(self, order: bt.order.BuyOrder) -> None:
         if order.status in [order.Submitted, order.Accepted]:
             return

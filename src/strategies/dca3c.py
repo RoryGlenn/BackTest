@@ -1,5 +1,8 @@
 from __future__ import (absolute_import, division, print_function, unicode_literals)
 from dca        import DCA
+from backtrader_plotting         import Bokeh
+from backtrader_plotting.schemes import Blackly
+
 
 import backtrader as bt
 import pandas     as pd
@@ -32,30 +35,17 @@ def get_elapsed_time(start_time: float) -> str:
 
 class DCA3C(bt.Strategy):
     # SCALP 15
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            15),
-    #     ('safety_orders_active_max',     15),
-    #     ('safety_order_volume_scale',    1.2),
-    #     ('safety_order_step_scale',      1.16),
-    #     ('safety_order_price_deviation', 1.0),
-    #     ('base_order_size_usd',          20),
-    #     ('safety_order_size_usd',        10)
-    # )
-
-
-    # params = (
-    #     ('target_profit_percent',        1),
-    #     ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
-    #     ('safety_orders_max',            7),
-    #     ('safety_orders_active_max',     7),
-    #     ('safety_order_volume_scale',    2.5),
-    #     ('safety_order_step_scale',      1.56),
-    #     ('safety_order_price_deviation', 1.3),
-    #     ('base_order_size_usd',          20),
-    #     ('safety_order_size_usd',        10)
-    # )
+    params = (
+        ('target_profit_percent',        1),
+        ('trail_percent',                0.002), # even though it says its a percent, its a decimal -> 0.2%
+        ('safety_orders_max',            15),
+        ('safety_orders_active_max',     15),
+        ('safety_order_volume_scale',    1.2),
+        ('safety_order_step_scale',      1.16),
+        ('safety_order_price_deviation', 1.0),
+        ('base_order_size_usd',          20),
+        ('safety_order_size_usd',        10)
+    )
 
     ############################################################################################
 
@@ -79,7 +69,7 @@ class DCA3C(bt.Strategy):
     def log(self, txt: str, dt=None) -> None:
         ''' Logging function fot this strategy'''
         dt      = dt or self.data.datetime[0]
-        minutes = self.datas[0].datetime.time(0)
+        # minutes = self.datas[0].datetime.time(0)
 
         if isinstance(dt, float):
             dt = bt.num2date(dt)
@@ -305,12 +295,6 @@ class DCA3C(bt.Strategy):
         print('safety_order_price_deviation:  ', self.params.safety_order_price_deviation)
         print('base_order_size_usd:           ', self.params.base_order_size_usd)
 
-        # if len(self.safety_order_sizes_usd) > 0:
-        #     if min(self.safety_order_sizes_usd) == max(self.safety_order_sizes_usd):
-        #         print(f'safety_order_size_usd:          {min(self.safety_order_sizes_usd)}')
-        #     else:
-        #         print(f'safety_order_sizes_usd:         {min(self.safety_order_sizes_usd)} - {max(self.safety_order_sizes_usd)}')
-
         print()
         print(f"Time period:           {self.time_period}")
         print(f"Total Profit:          {profit}")
@@ -323,10 +307,15 @@ class DCA3C(bt.Strategy):
         return
 
 
-
 def get_period(period: int) -> datetime:
     start_date = None
     end_date   = None
+
+    if period == 0:
+        # a short time frame to run a quick test only
+        start_date = datetime.datetime(year=2021, month=7, day=1, hour=0, minute=0)
+        end_date   = datetime.datetime(year=2021, month=7, day=7, hour=0, minute=0) 
+        return start_date, end_date
 
     if period == 1:
         # period 1: (4/14/2021 - 7/21/21)
@@ -378,7 +367,7 @@ def get_period(period: int) -> datetime:
 if __name__ == '__main__':
     os.system('cls')
 
-    for period in range(1, 11): # PERIOD 1-10
+    for period in range(0, 1): # PERIOD 1-10
         start_date, end_date = get_period(period)
 
         start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
@@ -416,8 +405,8 @@ if __name__ == '__main__':
 
         cerebro.run()
 
-        # b = Bokeh(style='bar', filename='backtest_results/Scalp.html', output_mode='show', scheme=Blackly())
-        # cerebro.plot(b)
+        b = Bokeh(style='bar', filename='backtest_results/Scalp.html', output_mode='show', scheme=Blackly())
+        cerebro.plot(b)
 
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")

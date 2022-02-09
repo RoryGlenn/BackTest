@@ -8,8 +8,8 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "src/strategies/BHDCA/main.py",
-            // "program": "${file}",
+            // "program": "src/strategies/BHDCA/main.py",
+            "program": "${file}",
             "justMyCode": true
         }
     ]

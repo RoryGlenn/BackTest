@@ -40,6 +40,7 @@ class BuyAndHold(bt.Strategy):
 
     def __init__(self) -> None:
         self.start_cash  = 0
+        self.current_cash = 0
         self.start_value = 0
         self.time_period = None
         self.order       = None
@@ -66,7 +67,8 @@ class BuyAndHold(bt.Strategy):
         return
 
     def start(self) -> None:
-        self.start_cash = self.broker.get_cash()
+        self.start_cash  = self.broker.get_cash()
+        self.current_cash = self.broker.get_cash()
         return
 
     def nextstart(self) -> None:
@@ -80,6 +82,14 @@ class BuyAndHold(bt.Strategy):
             quantity_to_buy = quantity_to_buy * 0.99
             self.order      = self.buy(size=quantity_to_buy, exectype=bt.Order.Market)        
         return
+
+    def notify_cashvalue(self, cash, value) -> None:
+        print("cash: ", cash)
+        print("self.current_cash: ", self.current_cash)
+        
+        self.current_cash = cash
+        return
+
 
     def notify_order(self, order: bt.order.BuyOrder) -> None:
         if order.status in [order.Submitted, order.Accepted]:
@@ -222,7 +232,6 @@ if __name__ == '__main__':
         
         cerebro.addstrategy(BuyAndHold)
         cerebro.addanalyzer(bt.analyzers.SharpeRatio)
-
 
         p = period
 

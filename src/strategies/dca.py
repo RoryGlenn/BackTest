@@ -68,7 +68,6 @@ class DCA():
 
         if self.total_usd > 0:
             """spreads out and uses all available cash accross safety orders in order to maximize profit."""
-            # self.start()
             self.optimize()
         else:
             self.start()

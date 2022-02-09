@@ -1,4 +1,5 @@
 from __future__                  import (absolute_import, division, print_function, unicode_literals)
+
 from dca                         import DCA
 from backtrader_plotting         import Bokeh
 from backtrader_plotting.schemes import Blackly
@@ -6,11 +7,11 @@ from backtrader_plotting.schemes import Blackly
 import backtrader as bt
 import pandas     as pd
 
+import time
 import datetime
 import os
 import math
 import sys
-
 
 
 TEN_THOUSAND          = 10000
@@ -20,15 +21,16 @@ BTC_USD_1MIN_ALL      = "historical_data/gemini/BTCUSD/gemini_BTCUSD_1min_all.cs
 
 BTCUSD_DECIMAL_PLACES = 5
 
-p              = None
+period         = None
 period_results = dict()
+
 
 
 class BHDCA(bt.Strategy):
     params = (
         # bh params
-        ('bh_target_profit_percent', 2),
-        # ('bh_trail_percent',         0.005), 
+        ('bh_target_profit_percent', 1),
+        ('bh_trail_percent',         0.002),
 
         # dca params
         ('dca_target_profit_percent',        1),
@@ -186,10 +188,10 @@ class BHDCA(bt.Strategy):
 
                         self.bh_take_profit_order = self.sell(price=take_profit_price,
                                                                 size=base_order_size,
-                                                                # trailpercent=self.params.bh_trail_percent,
-                                                                # plimit=take_profit_price,
-                                                                # exectype=bt.Order.StopTrailLimit)
-                                                              exectype=bt.Order.Limit)
+                                                                trailpercent=self.params.bh_trail_percent,
+                                                                plimit=take_profit_price,
+                                                                exectype=bt.Order.StopTrailLimit)
+                                                            #   exectype=bt.Order.Limit)
                     else:
                         """ DCA """
                         entry_price     = order.executed.price
@@ -345,6 +347,14 @@ class BHDCA(bt.Strategy):
         return
 
 
+##################################################################################
+def get_elapsed_time(start_time: float) -> str:
+    end_time     = time.time()
+    elapsed_time = round(end_time - start_time)
+    minutes      = elapsed_time // 60
+    seconds      = elapsed_time % 60
+    return f"{minutes} minutes {seconds} seconds"
+
 
 def get_period(period: int) -> datetime:
     start_date = None
@@ -353,7 +363,7 @@ def get_period(period: int) -> datetime:
     if period == 1:
         # period 1: (4/14/2021 - 7/21/21)
         start_date = datetime.datetime(year=2021, month=4, day=14, hour=0, minute=1)
-        end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)    
+        end_date   = datetime.datetime(year=2021, month=7, day=21, hour=0, minute=1)
     elif period == 2:
         # period 2: (1/7/2018 - 4/1/2018)
         start_date = datetime.datetime(year=2018, month=1, day=7, hour=0, minute=1)
@@ -401,9 +411,10 @@ if __name__ == '__main__':
     os.system('cls')
     
     period_results = dict()
+    start_time = time.time()
 
-    for period in range(1, 11): # PERIOD 1-10
-        start_date, end_date = get_period(period)
+    for p in range(1, 11): # PERIOD 1-10
+        start_date, end_date = get_period(p)
         start_date           -= datetime.timedelta(days=200) # time required to process the 200 day simple moving average
 
         start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
@@ -427,35 +438,36 @@ if __name__ == '__main__':
         cerebro.broker.set_cash(TEN_THOUSAND)
         cerebro.broker.setcommission(commission=0.001)  # 0.1% of the operation value
 
+        # data
         cerebro.adddata(data, name='BTCUSD_MINUTE') # adding a name while using bokeh will avoid plotting error
+        
         cerebro.resampledata(data, timeframe=bt.TimeFrame.Days, compression=1, name="BTCUSD_DAY")
         
+        # strategy
         cerebro.addstrategy(BHDCA)
 
+        # indicators
         cerebro.addindicator(bt.indicators.HullMovingAverage,   period=20)
         cerebro.addindicator(bt.indicators.MovingAverageSimple, period=200)
 
-
         # adding analyzers
-        cerebro.addanalyzer(bt.analyzers.SharpeRatio)
-        cerebro.addanalyzer(bt.analyzers.VWR)
-        cerebro.addanalyzer(bt.analyzers.PeriodStats)
-        cerebro.addanalyzer(bt.analyzers.DrawDown)
-        cerebro.addanalyzer(bt.analyzers.SQN)
-        cerebro.addanalyzer(bt.analyzers.TradeAnalyzer)
+        cerebro.addanalyzer(bt.analyzers.SharpeRatio, _name="sharpe_ratio")
 
-        p = period
+        period = p
 
         print()
         print("^^^^ STARTING THE BACKTEST ^^^^^")
-        print(f"*** Testing period {p} ***")
+        print(f"*** Testing period {period} ***")
         print()
 
-        cerebro.run()
+        the_strategy = cerebro.run()
+        the_strategy = the_strategy[0]
+        sharpe_ratio = the_strategy.analyzers.sharpe_ratio.get_analysis()['sharperatio']
+        print('Sharpe Ratio:', sharpe_ratio)
 
-        # b = Bokeh(style='bar', filename='backtest_results/BHDCA.html', output_mode='show', scheme=Blackly())
-        # cerebro.plot(b)
 
+    print(f"Total elapsed time: {get_elapsed_time(start_time)}")
+    
     for period, roi in period_results.items():
         print(f"period: {period}, roi: {roi}")
 
